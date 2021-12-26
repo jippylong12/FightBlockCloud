@@ -10,7 +10,7 @@ const keys = {
 };
 
 
-exports.getMMASchedule = functions.pubsub.schedule('every 1 hour').onRun(async (context) => {
+exports.getMMASchedule = functions.pubsub.schedule('every 1 day').onRun(async (context) => {
     const FantasyDataClient = new fdClientModule(keys);
     let writeResult = {id: 0}
     let snapshot = await admin.firestore().collection("events").get().then(querySnapshot => {
@@ -35,7 +35,7 @@ exports.getMMASchedule = functions.pubsub.schedule('every 1 hour').onRun(async (
     return null;
 });
 
-exports.getMMAFighters = functions.pubsub.schedule('every 1 hour').onRun(async (context) => {
+exports.getMMAFighters = functions.pubsub.schedule('every 1 day').onRun(async (context) => {
     const FantasyDataClient = new fdClientModule(keys);
     let writeResult = {id: 0}
     let snapshot = await admin.firestore().collection("fighters").get().then(querySnapshot => {
@@ -61,6 +61,34 @@ exports.getMMAFighters = functions.pubsub.schedule('every 1 hour').onRun(async (
     return null;
 });
 
+exports.getMMAEventDetails = functions.pubsub.schedule('every 1 day').onRun(async (context) => {
+
+    const FantasyDataClient = new fdClientModule(keys);
+    let writeResult = {id: 0}
+    let snapshot = await admin.firestore().collection("events").orderBy("DateTime", "desc").get().then(querySnapshot => {
+        return querySnapshot.docs.map(doc => doc.data())
+    });
+
+    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").get().then(querySnapshot => {
+        return querySnapshot.docs.map(doc => doc.data())
+    });
+
+
+    snapshot.forEach(event => {
+        FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
+            results = JSON.parse(results);
+            if (!eventDetailSnapshot.some(item => item.EventId === results['EventId'])) {
+                functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
+                writeResult = admin.firestore().collection('eventDetails').add(results);
+            }
+        }).catch(error => {
+            functions.logger.error("Client failed!", {structuredData: true});
+            functions.logger.error(error, {structuredData: true});
+        })
+    });
+
+    return null;
+});
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
