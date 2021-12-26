@@ -10,8 +10,54 @@ const keys = {
 };
 
 
-exports.getMMASchedule = functions.pubsub.schedule('every 1 hour').onRun((context) => {
-    console.log('This will be run every 5 minutes!');
+exports.getMMASchedule = functions.pubsub.schedule('every 1 hour').onRun(async (context) => {
+    const FantasyDataClient = new fdClientModule(keys);
+    let writeResult = {id: 0}
+    let snapshot = await admin.firestore().collection("events").get().then(querySnapshot => {
+        return querySnapshot.docs.map(doc => doc.data())
+    });
+
+    await FantasyDataClient.MMAv3ScoresClient.getSchedulePromise("UFC", 2021).then(async results => {
+        results = JSON.parse(results);
+
+        results.forEach(event => {
+
+            if (!snapshot.some(item => item.EventId === event['EventId'])) {
+                functions.logger.info(`Adding event ${JSON.stringify(event)}`, {structuredData: true});
+                writeResult = admin.firestore().collection('events').add(event);
+            }
+        })
+
+    }).catch(error => {
+        functions.logger.error("Client failed!", {structuredData: true});
+        functions.logger.error(error, {structuredData: true});
+    })
+    return null;
+});
+
+exports.getMMAFighters = functions.pubsub.schedule('every 1 hour').onRun(async (context) => {
+    const FantasyDataClient = new fdClientModule(keys);
+    let writeResult = {id: 0}
+    let snapshot = await admin.firestore().collection("fighters").get().then(querySnapshot => {
+        return querySnapshot.docs.map(doc => doc.data())
+    });
+
+    FantasyDataClient.MMAv3ScoresClient.getFightersPromise().then(async results => {
+        results = JSON.parse(results);
+
+        results.forEach(fighter => {
+
+            if (!snapshot.some(item => item.EventId === fighter['FighterId'])) {
+                functions.logger.info(`Adding fighter ${JSON.stringify(fighter)}`, {structuredData: true});
+                writeResult = admin.firestore().collection('fighters').add(fighter);
+            }
+        })
+
+    }).catch(error => {
+        functions.logger.error("Client failed!", {structuredData: true});
+        functions.logger.error(error, {structuredData: true});
+    })
+
     return null;
 });
 
@@ -20,27 +66,6 @@ exports.getMMASchedule = functions.pubsub.schedule('every 1 hour').onRun((contex
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 exports.helloWorld = functions.https.onRequest(async (request, response) => {
 
-    const FantasyDataClient = new fdClientModule(keys);
-    let writeResult = {id: 0}
-    let snapshot = await admin.firestore().collection("events").get().then(querySnapshot => {
-        return querySnapshot.docs.map(doc => doc.data())
-    });
-
-    await FantasyDataClient.MMAv3ScoresClient.getSchedulePromise("UFC", 2021).then(async results => {
-      results = JSON.parse(results);
-
-      results.forEach(event => {
-
-          if(!snapshot.some(item => item.EventId === event['EventId'])){
-              functions.logger.info(`Adding event ${JSON.stringify(event)}`, {structuredData: true});
-              writeResult = admin.firestore().collection('events').add(event);
-          }
-      })
-
-    }).catch(error => {
-      functions.logger.error("Client failed!", {structuredData: true});
-      functions.logger.error(error, {structuredData: true});
-    })
 
     response.send(`Processing`);
 });
