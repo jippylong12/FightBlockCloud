@@ -57,14 +57,13 @@ exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async
 
 
     const FantasyDataClient = new fdClientModule(keys);
-    let writeResult = {id: 0}
     let snapshot = await admin.firestore().collection("fighters").get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc.data())
     });
 
 
 
-    FantasyDataClient.MMAv3ScoresClient.getFightersPromise().then(async results => {
+    await FantasyDataClient.MMAv3ScoresClient.getFightersPromise().then(async results => {
         var counter = 0;
         var commitCounter = 0;
         var batches = [];
@@ -77,7 +76,6 @@ exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async
 
         results.forEach(fighter => {
             if (snapshot.length === 0 || !snapshot.some(item => item.FighterId === fighter['FighterId'])) {
-                functions.logger.info(`Adding fighter ${JSON.stringify(fighter)}`, {structuredData: true});
                 if(counter <= 498){
                     batches[commitCounter].set(admin.firestore().collection('fighters').doc(), fighter)
                     counter = counter + 1;
