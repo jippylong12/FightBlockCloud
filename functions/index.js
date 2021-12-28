@@ -36,21 +36,60 @@ exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(async
 });
 
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+    function oneSecond() {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve('resolved');
+            }, 1010);
+        });
+    }
+
+    async function writeToDb(arr) {
+        console.log("beginning write");
+        for (var i = 0; i < arr.length; i++) {
+            await oneSecond();
+            arr[i].commit().then(function () {
+                console.log("wrote batch " + i);
+            });
+        }
+        console.log("done.");
+    }
+
+
     const FantasyDataClient = new fdClientModule(keys);
     let writeResult = {id: 0}
     let snapshot = await admin.firestore().collection("fighters").get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc.data())
     });
 
+
+
     FantasyDataClient.MMAv3ScoresClient.getFightersPromise().then(async results => {
+        var counter = 0;
+        var commitCounter = 0;
+        var batches = [];
+
+        batches[commitCounter] = admin.firestore().batch();
+
         results = JSON.parse(results);
+
+        console.log(results.length);
 
         results.forEach(fighter => {
             if (snapshot.length === 0 || !snapshot.some(item => item.FighterId === fighter['FighterId'])) {
                 functions.logger.info(`Adding fighter ${JSON.stringify(fighter)}`, {structuredData: true});
-                writeResult = admin.firestore().collection('fighters').add(fighter);
+                if(counter <= 498){
+                    batches[commitCounter].set(admin.firestore().collection('fighters').doc(), fighter)
+                    counter = counter + 1;
+                } else {
+                    counter = 0;
+                    commitCounter = commitCounter + 1;
+                    batches[commitCounter] = admin.firestore().batch();
+                }
             }
         })
+
+        writeToDb(batches);
 
     }).catch(error => {
         functions.logger.error("Client failed!", {structuredData: true});
@@ -92,7 +131,6 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 exports.helloWorld = functions.https.onRequest(async (request, response) => {
-
 
     response.send(`Processing`);
 });
