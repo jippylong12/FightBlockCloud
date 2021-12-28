@@ -5,6 +5,14 @@
 firebase emulators:start
 ```
 
+## Push to production
+```shell
+firebase deploy --only functions
+```
+
+## Getting Started Doc
+https://firebase.google.com/docs/functions/get-started
+
 ## Localhost UI Url
 http://localhost:4000/functions 
 

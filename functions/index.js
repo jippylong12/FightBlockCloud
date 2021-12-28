@@ -89,7 +89,7 @@ exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async
             }
         })
 
-        writeToDb(batches);
+        await writeToDb(batches);
 
     }).catch(error => {
         functions.logger.error("Client failed!", {structuredData: true});
