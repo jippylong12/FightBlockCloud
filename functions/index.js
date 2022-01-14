@@ -17,7 +17,7 @@ exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(async
         return querySnapshot.docs.map(doc => doc.data())
     });
 
-    await FantasyDataClient.MMAv3ScoresClient.getSchedulePromise("UFC", 2021).then(async results => {
+    await FantasyDataClient.MMAv3ScoresClient.getSchedulePromise("UFC", 2022).then(async results => {
         results = JSON.parse(results);
 
         results.forEach(event => {
