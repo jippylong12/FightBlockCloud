@@ -5,6 +5,11 @@
 firebase emulators:start
 ```
 
+## Run with import data
+```shell
+firebase emulators:start --import="/Users/marcus.salinas/fbExport/"
+```
+
 ## Push to production
 ```shell
 firebase deploy --only functions
