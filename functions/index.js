@@ -5,8 +5,8 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 
 const keys = {
-    'MMAv3StatsClient': 'f1914d5079c141b9bf2fd101292e8f3c',
-    'MMAv3ScoresClient': 'f1914d5079c141b9bf2fd101292e8f3c'
+    'MMAv3StatsClient': 'ff83c11ae8594e0683721e682e36bc98',
+    'MMAv3ScoresClient': 'ff83c11ae8594e0683721e682e36bc98'
 };
 
 
@@ -347,6 +347,8 @@ exports.helloWorld = functions.https.onRequest(async (request, response) => {
         return pickedWinner;
     }
 
+    function showRankText(rank){}
+
     // loop through the pickList and score it
     function scorePickList(pickList) {
         pickList['score'] = 0;
@@ -433,21 +435,45 @@ exports.helloWorld = functions.https.onRequest(async (request, response) => {
             working = false;
 
             // update the league leaderboard
-            // for( let leagueId in leagueUpdateMap){
-            //     admin.firestore().collection("leagues").doc(leagueId).get().then(docSnapshot => {
-            //         let leagueData = docSnapshot.data();
-            //
-            //         leagueData['leaderboard'].forEach((userRow) => {
-            //             // if we have this user updated pickList then we replace it
-            //             if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
-            //                 userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
-            //             }
-            //         })
-            //
-            //         // update
-            //         admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
-            //     });
-            // }
+            for( let leagueId in leagueUpdateMap){
+                admin.firestore().collection("leagues").doc(leagueId).get().then(docSnapshot => {
+                    let leagueData = docSnapshot.data();
+
+                    leagueData['leaderboard'].forEach((userRow) => {
+                        // if we have this user updated pickList then we replace it
+                        if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
+                            console.log("found user");
+                            userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
+                        }
+                    })
+
+                    leagueData['leaderboard'].sort(function(a, b) {
+                        var nameA = a.score;
+                        var nameB = b.score;
+                        if (nameA < nameB) {
+                            return -1;
+                        }
+                        if (nameA > nameB) {
+                            return 1;
+                        }
+
+                        // names must be equal
+                        return 0;
+                    });
+                    leagueData['leaderboard'].forEach((userRow, index) => {
+                        userRow['rank'] = index + 1;
+                        // userRow['rankText'] =
+                        // if we have this user updated pickList then we replace it
+                        if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
+                            console.log("found user");
+                            userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
+                        }
+                    })
+
+                    // update
+                    admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
+                });
+            }
 
 
 
