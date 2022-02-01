@@ -101,20 +101,47 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
 
     const FantasyDataClient = new fdClientModule(keys);
     let writeResult = {id: 0}
-    let snapshot = await admin.firestore().collection("events").orderBy("DateTime", "desc").get().then(querySnapshot => {
+    let snapshot = await admin.firestore().collection("events").where("Status", "==", "Scheduled").orderBy("DateTime", "desc").get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc.data())
     });
 
-    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").get().then(querySnapshot => {
-        return querySnapshot.docs.map(doc => doc.data())
+    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").where("Status", "==", "Scheduled").get().then(querySnapshot => {
+        return querySnapshot.docs.map(function(doc) { return {[doc.data()['EventId']]: [doc.id,doc.data()]}})
     });
 
 
     snapshot.forEach(event => {
         FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
-            if (eventDetailSnapshot.length === 0 || !eventDetailSnapshot.some(item => item.EventId === results['EventId'])) {
+            let eventDetail = eventDetailSnapshot.find(item => item[results['EventId']]);
+            if (eventDetail) {
+                eventDetail = eventDetail[results['EventId']];
+                functions.logger.info(`Updating eventDetails ${JSON.stringify(eventDetail[0])}`, {structuredData: true});
+                // if it exists
+
+                // WE NEED TO UPDATE THE EVENT DETAILS FOR FUTURE CARDS AND THEN
+                admin.firestore().collection('eventDetails').doc(eventDetail[0]).update(results)
+
+
+                // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
+                let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", results['EventId']).get()
+                pickLists.forEach(function(list) {
+                    let updateId = list.id;
+                    let listData = list.data();
+
+                    // for each pick list, let's update the fight data
+                    listData['picks'].forEach(function(pick) {
+                        let resultData = results['Fights'].find(item => item['Order'] === pick['fightData']['Order']);
+                        if(resultData){
+                            pick['fightData'] = resultData;
+                        }
+                    })
+
+                    admin.firestore().collection('pickLists').doc(updateId).update(listData)
+                })
+            } else{
                 functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
+                // it doesn't exist so add it
                 writeResult = admin.firestore().collection('eventDetails').add(results);
             }
         }).catch(error => {
@@ -324,43 +351,5 @@ exports.updateScores = functions.pubsub.schedule('every 5 minutes').onRun(async 
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 exports.helloWorld = functions.https.onRequest(async (request, response) => {
 
-
-    const FantasyDataClient = new fdClientModule(keys);
-    let writeResult = {id: 0}
-    let snapshot = await admin.firestore().collection("events").where("Status", "==", "Scheduled").orderBy("DateTime", "desc").get().then(querySnapshot => {
-        return querySnapshot.docs.map(doc => doc.data())
-    });
-
-    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").where("Status", "==", "Scheduled").get().then(querySnapshot => {
-        return querySnapshot.docs.map(function(doc) { return {[doc.data()['EventId']]: [doc.id,doc.data()]}})
-    });
-
-
-
-    snapshot.forEach(event => {
-        FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
-            results = JSON.parse(results);
-            let eventDetail = eventDetailSnapshot.find(item => item[results['EventId']]);
-            if (eventDetail) {
-                functions.logger.info(`Updating eventDetails ${JSON.stringify(eventDetail[0])}`, {structuredData: true});
-                eventDetail = eventDetail[results['EventId']];
-                // if it exists
-
-                // WE NEED TO UPDATE THE EVENT DETAILS FOR FUTURE CARDS AND THEN
-                admin.firestore().collection('eventDetails').doc(eventDetail[0]).update(results)
-
-
-                // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
-
-            } else{
-                functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
-                // it doesn't exist so add it
-                writeResult = admin.firestore().collection('eventDetails').add(results);
-            }
-        }).catch(error => {
-            functions.logger.error("Client failed!", {structuredData: true});
-            functions.logger.error(error, {structuredData: true});
-        })
-    });
     response.send(`Processing`);
 });
