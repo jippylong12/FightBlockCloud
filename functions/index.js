@@ -215,7 +215,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(a
     return null;
 });
 
-exports.updateScores = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
+exports.updateScores = functions.pubsub.schedule('*/5 16-23 * * 6-7').onRun(async (context) => {
 
     let working = true;
     let startDate = new Date();
