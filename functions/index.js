@@ -121,10 +121,16 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
                 functions.logger.info(`Updating eventDetails ${JSON.stringify(eventDetail[0])}`, {structuredData: true});
 
                 // WE NEED TO UPDATE THE EVENT DETAILS FOR FUTURE CARDS AND THEN
-                admin.firestore().collection('eventDetails').doc(eventDetail[0]).set(results)
+                await admin.firestore().collection('eventDetails').doc(eventDetail[0]).set(results)
 
 
                 // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
+                let counter = 0;
+                let commitCounter = 0;
+                let batches = [];
+
+                batches[commitCounter] = admin.firestore().batch();
+
                 let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", results['EventId']).get()
                 pickLists.forEach(function(list) {
                     let updateId = list.id;
@@ -154,12 +160,23 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
 
                     listData['picks'].sort(sortByOrder);
 
-                    admin.firestore().collection('pickLists').doc(updateId).set(listData)
+                    if(counter <= 498){
+                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), results)
+                        counter = counter + 1;
+                    } else {
+                        counter = 0;
+                        commitCounter = commitCounter + 1;
+                        batches[commitCounter] = admin.firestore().batch();
+                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), results)
+                    }
                 })
+
+                await writeToDb(batches);
+
             } else{
-                functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
                 // it doesn't exist so add it
-                writeResult = admin.firestore().collection('eventDetails').add(results);
+                functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
+                await  admin.firestore().collection('eventDetails').add(results);
             }
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
@@ -175,6 +192,25 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
             return 1;
         }
         return 0;
+    }
+
+    function oneSecond() {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve('resolved');
+            }, 1010);
+        });
+    }
+
+    async function writeToDb(arr) {
+        console.log("beginning write");
+        for (var i = 0; i < arr.length; i++) {
+            await oneSecond();
+            arr[i].commit().then(function () {
+                console.log("wrote batch " + i);
+            });
+        }
+        console.log("done.");
     }
 
     return null;
