@@ -36,25 +36,6 @@ exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(async
 });
 
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
-    function oneSecond() {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve('resolved');
-            }, 1010);
-        });
-    }
-
-    async function writeToDb(arr) {
-        console.log("beginning write");
-        for (var i = 0; i < arr.length; i++) {
-            await oneSecond();
-            arr[i].commit().then(function () {
-                console.log("wrote batch " + i);
-            });
-        }
-        console.log("done.");
-    }
-
 
     const FantasyDataClient = new fdClientModule(keys);
     let snapshot = await admin.firestore().collection("fighters").get().then(querySnapshot => {
@@ -94,6 +75,25 @@ exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async
         functions.logger.error(error, {structuredData: true});
     })
 
+
+    function oneSecond() {
+        return new Promise(resolve => {
+            setTimeout(() => {
+                resolve('resolved');
+            }, 1010);
+        });
+    }
+
+    async function writeToDb(arr) {
+        console.log("beginning write");
+        for (var i = 0; i < arr.length; i++) {
+            await oneSecond();
+            arr[i].commit().then(function () {
+                console.log("wrote batch " + i);
+            });
+        }
+        console.log("done.");
+    }
     return null;
 });
 
@@ -110,18 +110,18 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
     });
 
 
-    snapshot.forEach(event => {
-        FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
+    for (const event of snapshot) {
+        await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
             let eventDetail = eventDetailSnapshot.find(item => item[results['EventId']]);
 
             if (eventDetail) {
+                // if it exists
                 eventDetail = eventDetail[results['EventId']];
                 functions.logger.info(`Updating eventDetails ${JSON.stringify(eventDetail[0])}`, {structuredData: true});
-                // if it exists
 
                 // WE NEED TO UPDATE THE EVENT DETAILS FOR FUTURE CARDS AND THEN
-                admin.firestore().collection('eventDetails').doc(eventDetail[0]).update(results)
+                admin.firestore().collection('eventDetails').doc(eventDetail[0]).set(results)
 
 
                 // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
@@ -154,7 +154,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
 
                     listData['picks'].sort(sortByOrder);
 
-                    admin.firestore().collection('pickLists').doc(updateId).update(listData)
+                    admin.firestore().collection('pickLists').doc(updateId).set(listData)
                 })
             } else{
                 functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
@@ -165,7 +165,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
         })
-    });
+    }
 
     function sortByOrder( a, b ){
         if ( a['fightData']['Order'] < b['fightData']['Order'] ){
