@@ -161,13 +161,13 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
                     listData['picks'].sort(sortByOrder);
 
                     if(counter <= 498){
-                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), results)
+                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
                         counter = counter + 1;
                     } else {
                         counter = 0;
                         commitCounter = commitCounter + 1;
                         batches[commitCounter] = admin.firestore().batch();
-                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), results)
+                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
                     }
                 })
 
