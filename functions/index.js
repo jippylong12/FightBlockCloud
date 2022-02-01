@@ -114,6 +114,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
         FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
             let eventDetail = eventDetailSnapshot.find(item => item[results['EventId']]);
+
             if (eventDetail) {
                 eventDetail = eventDetail[results['EventId']];
                 functions.logger.info(`Updating eventDetails ${JSON.stringify(eventDetail[0])}`, {structuredData: true});
@@ -130,12 +131,28 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
                     let listData = list.data();
 
                     // for each pick list, let's update the fight data
-                    listData['picks'].forEach(function(pick) {
-                        let resultData = results['Fights'].find(item => item['Order'] === pick['fightData']['Order']);
-                        if(resultData){
-                            pick['fightData'] = resultData;
+                    results['Fights'].forEach(function(fight) {
+                        let pickIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
+                        if(pickIndex !== -1){
+                            // replace the current fight data
+                            listData['picks'][pickIndex]['fightData'] = fight;
+                        } else {
+                            // add the new item
+                            listData['picks'].push({
+                                perfectHit: false,
+                                fighterIdChosen: null,
+                                roundChosen: null,
+                                FotNBool: false,
+                                correctWinnerBool: null,
+                                fightData: fight,
+                                score: 0,
+                                methodChosen: null,
+                            });
                         }
                     })
+
+
+                    listData['picks'].sort(sortByOrder);
 
                     admin.firestore().collection('pickLists').doc(updateId).update(listData)
                 })
@@ -149,6 +166,16 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(a
             functions.logger.error(error, {structuredData: true});
         })
     });
+
+    function sortByOrder( a, b ){
+        if ( a['fightData']['Order'] < b['fightData']['Order'] ){
+            return -1;
+        }
+        if ( a['fightData']['Order'] > b['fightData']['Order'] ){
+            return 1;
+        }
+        return 0;
+    }
 
     return null;
 });
