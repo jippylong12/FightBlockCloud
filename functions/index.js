@@ -97,10 +97,9 @@ exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async
     return null;
 });
 
-exports.getMMAEventDetails = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
+exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(async (context) => {
 
     const FantasyDataClient = new fdClientModule(keys);
-    let writeResult = {id: 0}
     let snapshot = await admin.firestore().collection("events").where("Status", "==", "Scheduled").orderBy("DateTime", "desc").get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc.data())
     });
