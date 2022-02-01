@@ -23,3 +23,6 @@ http://localhost:4000/functions
 
 ## Localhost testUrl
 http://localhost:5001/fight-block/us-central1/helloWorld
+
+### Export DB
+https://console.cloud.google.com/firestore/import-export?project=fight-block
