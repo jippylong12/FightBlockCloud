@@ -108,7 +108,6 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(a
         return querySnapshot.docs.map(function(doc) { return {[doc.data()['EventId']]: [doc.id,doc.data()]}})
     });
 
-
     for (const event of snapshot) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
@@ -137,23 +136,38 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(a
 
                     // for each pick list, let's update the fight data
                     results['Fights'].forEach(function(fight) {
-                        let pickIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
-                        if(pickIndex !== -1){
-                            // replace the current fight data
-                            listData['picks'][pickIndex]['fightData'] = fight;
-                        } else {
-                            // add the new item
-                            listData['picks'].push({
-                                perfectHit: false,
-                                fighterIdChosen: null,
-                                roundChosen: null,
-                                FotNBool: false,
-                                correctWinnerBool: null,
-                                fightData: fight,
-                                score: 0,
-                                methodChosen: null,
-                            });
+                        // exclude early prelims
+                        if(!(fight['CardSegment'] === null) && !(fight['CardSegment'] === 'Early Prelims')){
+                            // if the pick list doesn't allow prelims we don't want them either
+                            // always allow main card events
+                            if((fight['CardSegment'] === 'Prelims' && listData['prelims']) || fight['CardSegment'] === 'Main Card'){
+
+                                let pickIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
+
+                                // we don't want these ones
+
+                                if(pickIndex !== -1){
+                                    // replace the current fight data
+                                    listData['picks'][pickIndex]['fightData'] = fight;
+                                } else {
+                                    // add the new item
+                                    listData['picks'].push({
+                                        perfectHit: false,
+                                        fighterIdChosen: null,
+                                        roundChosen: null,
+                                        FotNBool: false,
+                                        correctWinnerBool: null,
+                                        fightData: fight,
+                                        score: 0,
+                                        methodChosen: null,
+                                    });
+                                }
+                            }
+
+
+
                         }
+
                     })
 
 
