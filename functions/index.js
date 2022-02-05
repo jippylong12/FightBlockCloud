@@ -1,29 +1,23 @@
 const functions = require("firebase-functions");
-const fdClientModule = require('fantasydata-node-client');
 const admin = require('firebase-admin');
-const SharedFunctions = require("./SharedFunctions");
-const sharedFunctions = new SharedFunctions();
-const removeEarlyPrelims = require('./requests/removeEarlyPrelims');
+
+// imports of files
+const convertMethodToResultType = require('./requests/one-time/convertMethodToResultType');
 const getMMASchedule = require('./pubsubs/getMMASchedule');
 const getMMAFighters = require('./pubsubs/getMMAFighters');
 const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const updateScores = require('./pubsubs/updateScores');
+const testing = require('./requests/testing');
 
 admin.initializeApp();
 
+
+// pub subs
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(getMMASchedule);
-
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(getMMAFighters);
-
 exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(getMMAEventDetails);
-
 exports.updateScores = functions.pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
-exports.removeEarlyPrelims = functions.https.onRequest(removeEarlyPrelims);
-
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-exports.helloWorld = functions.https.onRequest(async (request, response) => {
-
-    response.send(`Processed`);
-});
+// request functions
+exports.convertMethodToResultType = functions.https.onRequest(convertMethodToResultType);
+exports.testing = functions.https.onRequest(testing);

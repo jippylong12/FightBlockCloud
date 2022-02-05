@@ -122,9 +122,7 @@ module.exports = async (context) => {
         })
     }
 
-    response.send(`Processed`);
-    // return null;
-
+    return null;
 
     function sortLeagueScoreboard(a, b){
         let nameA = a.score;

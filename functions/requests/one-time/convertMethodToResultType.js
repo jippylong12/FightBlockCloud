@@ -1,5 +1,10 @@
+/**
+ * 2022/02/05
+ * At the initial time we didn't know what the result type looked like so I was using customer enumerated values
+ * This is to convert all the old formatted methods to the sportsData ResultType
+ */
 const admin = require("firebase-admin");
-const SharedFunctions = require("../SharedFunctions");
+const SharedFunctions = require("../../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 
 module.exports = async (request, response) => {
@@ -16,7 +21,10 @@ module.exports = async (request, response) => {
     pickLists.forEach(function(pickList){{
         let pickListData = pickList.data();
 
-        pickListData['picks'] = pickListData['picks'].filter(pick => pick['fightData']['CardSegment'] !== 'Early Prelims')
+
+        pickListData['picks'].forEach(function(pick){
+            pick['methodChosen'] = convertMethodToResults(pick['methodChosen']);
+        });
 
         if(counter <= 498){
             batches[commitCounter].set(admin.firestore().collection('pickLists').doc(pickList.id), pickListData)
@@ -31,6 +39,19 @@ module.exports = async (request, response) => {
     }});
 
     await sharedFunctions.writeToDb(batches);
-    response.send(`Processed`);
 
+    return null;
+
+    // the ResultType was hidden and we need to convert our values to the type we are given
+    function convertMethodToResults(method){
+        if(method === 'DEC'){
+            return 'Decision';
+        } else if (method === 'SUB'){
+            return 'Submission';
+        } else if (method === 'KO'){
+            return 'KO/TKO';
+        } else {
+            return method; // this is for the times after we have the correct terms and null
+        }
+    }
 }
