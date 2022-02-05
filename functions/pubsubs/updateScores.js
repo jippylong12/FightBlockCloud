@@ -58,14 +58,12 @@ module.exports = async (request, response) => {
                             leagueUpdateMap[pickList['leagueId']] = {};
                         }
                         leagueUpdateMap[pickList['leagueId']][pickList['userId']] = pickList['score'];
-
-                        console.log("League Update Map");
-                        console.log(JSON.stringify(leagueUpdateMap));
                     })
                 });
 
 
-            working = false;
+            console.log("League Update Map");
+            console.log(JSON.stringify(leagueUpdateMap));
 
             // update the league leaderboard
             for( let leagueId in leagueUpdateMap){
@@ -75,7 +73,6 @@ module.exports = async (request, response) => {
                     leagueData['leaderboard'].forEach((userRow) => {
                         // if we have this user updated pickList then we replace it
                         if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
-                            console.log("found user");
                             userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
                         }
                     })
@@ -83,10 +80,9 @@ module.exports = async (request, response) => {
                     leagueData['leaderboard'].sort(sortLeagueScoreboard);
                     leagueData['leaderboard'].forEach((userRow, index) => {
                         userRow['rank'] = index + 1;
-                        // userRow['rankText'] =
+                        userRow['rankText'] = getRankText(index+1);
                         // if we have this user updated pickList then we replace it
                         if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
-                            console.log("found user");
                             userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
                         }
                     })
@@ -96,7 +92,7 @@ module.exports = async (request, response) => {
                 });
             }
 
-
+            working = false;
 
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
@@ -106,7 +102,8 @@ module.exports = async (request, response) => {
 
     while(working){}
 
-    return null;
+    response.send(`Processed`);
+    // return null;
 
 
     function sortLeagueScoreboard(a, b){
@@ -121,6 +118,15 @@ module.exports = async (request, response) => {
 
         // names must be equal
         return 0;
+    }
+
+    // depending on their rank we need to return the text
+    function getRankText(rank){
+        if(rank === 1){ return "1st"; }
+        else if (rank === 2){ return "2nd"; }
+        else if (rank === 3){ return "3rd";}
+        else if (rank < 21) { return `${rank}th`}
+        else{ return rank.toString();}
     }
 
     function correctChosenFighter(pick) {
