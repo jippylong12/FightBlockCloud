@@ -10,6 +10,9 @@ const keys = {
 };
 
 
+const sharedFunctions = require("SharedFunctions");
+
+
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
     const FantasyDataClient = new fdClientModule(keys);
     let writeResult = {id: 0}
@@ -68,32 +71,13 @@ exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(async
             }
         })
 
-        await writeToDb(batches);
+        await sharedFunctions.writeToDb(batches);
 
     }).catch(error => {
         functions.logger.error("Client failed!", {structuredData: true});
         functions.logger.error(error, {structuredData: true});
     })
 
-
-    function oneSecond() {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve('resolved');
-            }, 1010);
-        });
-    }
-
-    async function writeToDb(arr) {
-        console.log("beginning write");
-        for (var i = 0; i < arr.length; i++) {
-            await oneSecond();
-            arr[i].commit().then(function () {
-                console.log("wrote batch " + i);
-            });
-        }
-        console.log("done.");
-    }
     return null;
 });
 
@@ -171,7 +155,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(a
                     })
 
 
-                    listData['picks'].sort(sortByOrder);
+                    listData['picks'].sort(sharedFunctions.sortByOrder);
 
                     if(counter <= 498){
                         batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
@@ -184,7 +168,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(a
                     }
                 })
 
-                await writeToDb(batches);
+                await sharedFunctions.writeToDb(batches);
 
             } else{
                 // it doesn't exist so add it
@@ -197,34 +181,7 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(a
         })
     }
 
-    function sortByOrder( a, b ){
-        if ( a['fightData']['Order'] < b['fightData']['Order'] ){
-            return -1;
-        }
-        if ( a['fightData']['Order'] > b['fightData']['Order'] ){
-            return 1;
-        }
-        return 0;
-    }
 
-    function oneSecond() {
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve('resolved');
-            }, 1010);
-        });
-    }
-
-    async function writeToDb(arr) {
-        console.log("beginning write");
-        for (var i = 0; i < arr.length; i++) {
-            await oneSecond();
-            arr[i].commit().then(function () {
-                console.log("wrote batch " + i);
-            });
-        }
-        console.log("done.");
-    }
 
     return null;
 });
@@ -262,15 +219,6 @@ exports.updateScores = functions.pubsub.schedule('*/5 16-22 * * 6').onRun(async 
                     pickListsSnapshot.docs.forEach(doc => {
                         let pickList = doc.data();
 
-                        // replace the fight data with the right data
-                        pickList['picks'].forEach(pick => {
-                            results['Fights'].forEach((fight) => {
-                                if(pick['fightData']['FightId'] === fight['FightId']){
-                                    pick['fightData'] = fight;
-                                }
-                            });
-                        });
-
                         // score the pickList
                         scorePickList(pickList);
 
@@ -305,19 +253,7 @@ exports.updateScores = functions.pubsub.schedule('*/5 16-22 * * 6').onRun(async 
                         }
                     })
 
-                    leagueData['leaderboard'].sort(function(a, b) {
-                        var nameA = a.score;
-                        var nameB = b.score;
-                        if (nameA < nameB) {
-                            return -1;
-                        }
-                        if (nameA > nameB) {
-                            return 1;
-                        }
-
-                        // names must be equal
-                        return 0;
-                    });
+                    leagueData['leaderboard'].sort(sortLeagueScoreboard);
                     leagueData['leaderboard'].forEach((userRow, index) => {
                         userRow['rank'] = index + 1;
                         // userRow['rankText'] =
@@ -345,6 +281,20 @@ exports.updateScores = functions.pubsub.schedule('*/5 16-22 * * 6').onRun(async 
 
     return null;
 
+
+    function sortLeagueScoreboard(a, b){
+        let nameA = a.score;
+        let nameB = b.score;
+        if (nameA < nameB) {
+            return -1;
+        }
+        if (nameA > nameB) {
+            return 1;
+        }
+
+        // names must be equal
+        return 0;
+    }
 
     function correctChosenFighter(pick) {
         return pick['fighterIdChosen'] === pick['fightData']['WinnerId'];
@@ -420,12 +370,48 @@ exports.updateScores = functions.pubsub.schedule('*/5 16-22 * * 6').onRun(async 
             }
         }
 
+        // update the time
+        pickList['updatedAtScores'] = new Date().toISOString();
+
     }
+});
+
+exports.removeEarlyPrelims = functions.https.onRequest(async (request, response) => {
+    let pickLists = await admin.firestore().collection("pickLists").get().then(querySnapshot => {
+        return querySnapshot.docs.map(doc => doc)
+    });
+
+
+    let counter = 0;
+    let commitCounter = 0;
+    let batches = [];
+    batches[commitCounter] = admin.firestore().batch();
+
+    pickLists.forEach(function(pickList){{
+        let pickListData = pickList.data();
+
+        pickListData['picks'] = pickListData['picks'].filter(pick => pick['fightData']['CardSegment'] !== 'Early Prelims')
+
+        if(counter <= 498){
+            batches[commitCounter].set(admin.firestore().collection('pickLists').doc(pickList.id), pickListData)
+            counter = counter + 1;
+        } else {
+            counter = 0;
+            commitCounter = commitCounter + 1;
+            batches[commitCounter] = admin.firestore().batch();
+            batches[commitCounter].set(admin.firestore().collection('pickLists').doc(pickList.id), pickListData)
+        }
+
+    }});
+
+    await sharedFunctions.writeToDb(batches);
+    response.send(`Processed`);
+
 });
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 exports.helloWorld = functions.https.onRequest(async (request, response) => {
 
-    response.send(`Processing`);
+    response.send(`Processed`);
 });
