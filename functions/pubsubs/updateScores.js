@@ -152,24 +152,11 @@ module.exports = async (context) => {
     }
 
     function correctChosenMethod(pick) {
-        return pick['fightData']['ResultType'].includes(convertMethodToResults(pick['methodChosen']));
+        return pick['fightData']['ResultType'].includes(pick['methodChosen']);
     }
 
     function correctChosenRound(pick) {
         return pick['roundChosen'] === pick['fightData']['ResultRound'];
-    }
-
-    // the ResultType was hidden and we need to convert our values to the type we are given
-    function convertMethodToResults(method){
-        if(method === 'DEC'){
-            return 'Decision';
-        } else if (method === 'SUB'){
-            return 'Submission';
-        } else if (method === 'KO'){
-            return 'KO/TKO';
-        } else {
-            return method; // this is for the times after we have the correct terms
-        }
     }
 
     function scorePick(pick){
@@ -186,7 +173,7 @@ module.exports = async (context) => {
                 pick['score'] += 2;
                 // method correct?
                 if (correctChosenMethod(pick)) {
-                    if (pick['methodChosen'] === 'DEC') {
+                    if (pick['methodChosen'] === 'Decision') {
                         pick['score'] += 10;
                     } else {
                         // round correct?
