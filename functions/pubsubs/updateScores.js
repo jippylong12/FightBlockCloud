@@ -220,10 +220,17 @@ module.exports = async (context) => {
     // loop through the pickList and score it
     function scorePickList(pickList) {
         pickList['score'] = 0;
+        pickList['locked'] = true;
         let boutWinnerCount = 0;
+        let finalizeCount = 0; // if all picks are in the final state we want to finalize the PickCard
         pickList['picks'].forEach(function(thisPick) {
+
             if(scorePick(thisPick)){
                 boutWinnerCount += 1;
+            }
+
+            if(thisPick['fightData']['Status'] === 'Final'){
+                finalizeCount += 1;
             }
 
             pickList['score'] += thisPick['score'];
@@ -231,10 +238,15 @@ module.exports = async (context) => {
 
         // if we pick all winners then we give the Parlay bonus
         if (boutWinnerCount === pickList['picks'].length) {
+            pickList['parlayBonus'] = true;
             pickList['picks'].forEach(function(thisPick) {
                 thisPick['score'] += 6;
                 pickList['score'] += thisPick['score'];
             });
+        }
+
+        if(finalizeCount === pickList['picks'].length){
+            pickList['active'] = false;
         }
 
         // update the time
