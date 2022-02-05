@@ -3,7 +3,7 @@ const fdClientModule = require("fantasydata-node-client");
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 
-module.exports = async (context) => {
+module.exports = async (request, response) => {
 
     let working = true;
     let startDate = new Date();
@@ -35,6 +35,16 @@ module.exports = async (context) => {
 
                     pickListsSnapshot.docs.forEach(doc => {
                         let pickList = doc.data();
+
+
+                        // replace the fight data with the right data
+                        pickList['picks'].forEach(pick => {
+                            results['Fights'].forEach((fight) => {
+                                if(pick['fightData']['FightId'] === fight['FightId']){
+                                    pick['fightData'] = fight;
+                                }
+                            });
+                        });
 
                         // score the pickList
                         scorePickList(pickList);
@@ -118,11 +128,22 @@ module.exports = async (context) => {
     }
 
     function correctChosenMethod(pick) {
-        return pick['methodChosen'] === pick['fightData']['ResultType'];
+        return pick['fightData']['ResultType'].includes(convertMethodToResults(pick['methodChosen']));
     }
 
     function correctChosenRound(pick) {
         return pick['roundChosen'] === pick['fightData']['ResultRound'];
+    }
+
+    // the ResultType was hidden and we need to convert our values to the type we are given
+    function convertMethodToResults(method){
+        if(method === 'DEC'){
+            return 'Decision';
+        } else if (method === 'SUB'){
+            return 'Submission';
+        } else if (method === 'KO'){
+            return 'KO/TKO';
+        }
     }
 
     function scorePick(pick){
@@ -171,13 +192,13 @@ module.exports = async (context) => {
     function scorePickList(pickList) {
         pickList['score'] = 0;
         let boutWinnerCount = 0;
-        for (let thisPick in pickList['picks']) {
+        pickList['picks'].forEach(function(thisPick) {
             if(scorePick(thisPick)){
                 boutWinnerCount += 1;
             }
 
             pickList['score'] += thisPick['score'];
-        }
+        });
 
         // if we pick all winners then we give the Parlay bonus
         if (boutWinnerCount === pickList['picks'].length) {
