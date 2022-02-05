@@ -1,8 +1,13 @@
 const admin = require("firebase-admin");
 const SharedFunctions = require("../SharedFunctions");
+const fdClientModule = require("fantasydata-node-client");
+const Constants = require("../pubsubs/Constants");
 const sharedFunctions = new SharedFunctions();
 
-module.exports = async function(request, response) {
+module.exports = async (request, response) => {
+
+    const FantasyDataClient = new fdClientModule(Constants.keys);
+
     let pickLists = await admin.firestore().collection("pickLists").get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc)
     });
