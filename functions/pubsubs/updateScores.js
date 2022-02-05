@@ -2,10 +2,11 @@ const Constants = require("./Constants");
 const fdClientModule = require("fantasydata-node-client");
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const SharedFunctions = require("../SharedFunctions");
+const sharedFunctions = new SharedFunctions();
 
 module.exports = async (request, response) => {
 
-    let working = true;
     let startDate = new Date();
     let endDate = new Date();
     endDate.setDate(endDate.getDate()+2);
@@ -24,6 +25,11 @@ module.exports = async (request, response) => {
     // which leagues to update.
     // {leagueId: {userId: points}}
     let leagueUpdateMap = {}
+
+    let counter = 0;
+    let commitCounter = 0;
+    let batches = [];
+    batches[commitCounter] = admin.firestore().batch();
 
     for (const event of snapshot) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
@@ -50,8 +56,16 @@ module.exports = async (request, response) => {
                         scorePickList(pickList);
 
 
-                        // update
-                        admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
+
+                        if(counter <= 498){
+                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
+                            counter = counter + 1;
+                        } else {
+                            counter = 0;
+                            commitCounter = commitCounter + 1;
+                            batches[commitCounter] = admin.firestore().batch();
+                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
+                        }
 
 
                         if(!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])){
@@ -87,20 +101,26 @@ module.exports = async (request, response) => {
                         }
                     })
 
-                    // update
-                    admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
+
+                    if(counter <= 498){
+                        batches[commitCounter].set(admin.firestore().collection("leagues").doc(leagueId), leagueData)
+                        counter = counter + 1;
+                    } else {
+                        counter = 0;
+                        commitCounter = commitCounter + 1;
+                        batches[commitCounter] = admin.firestore().batch();
+                        batches[commitCounter].set(admin.firestore().collection("leagues").doc(leagueId), leagueData)
+                    }
                 });
             }
 
-            working = false;
+            await sharedFunctions.writeToDb(batches);
 
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
         })
     }
-
-    while(working){}
 
     response.send(`Processed`);
     // return null;
@@ -161,6 +181,7 @@ module.exports = async (request, response) => {
             pick['perfectHit'] = false;
             // winner correct?
             if (correctChosenFighter(pick)) {
+                pick['correctWinnerBool'] = true;
                 pickedWinner = true;
                 pick['score'] += 2;
                 // method correct?
