@@ -1,6 +1,8 @@
 const functions = require("firebase-functions");
 const fdClientModule = require('fantasydata-node-client');
 const admin = require('firebase-admin');
+const SharedFunctions = require("./SharedFunctions");
+const sharedFunctions = new SharedFunctions();
 
 admin.initializeApp();
 
@@ -10,7 +12,6 @@ const keys = {
 };
 
 
-const sharedFunctions = require("SharedFunctions");
 
 
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(async (context) => {
