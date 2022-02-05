@@ -40,7 +40,7 @@ module.exports = async (request, response) => {
 
     await sharedFunctions.writeToDb(batches);
 
-    return null;
+    response.send(`Processed`);
 
     // the ResultType was hidden and we need to convert our values to the type we are given
     function convertMethodToResults(method){

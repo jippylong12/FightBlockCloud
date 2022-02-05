@@ -19,5 +19,4 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(g
 exports.updateScores = functions.pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
-exports.convertMethodToResultType = functions.https.onRequest(convertMethodToResultType);
 exports.testing = functions.https.onRequest(testing);
