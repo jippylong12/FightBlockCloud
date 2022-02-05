@@ -2,7 +2,6 @@ const functions = require("firebase-functions");
 const admin = require('firebase-admin');
 
 // imports of files
-const convertMethodToResultType = require('./requests/one-time/convertMethodToResultType');
 const getMMASchedule = require('./pubsubs/getMMASchedule');
 const getMMAFighters = require('./pubsubs/getMMAFighters');
 const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
