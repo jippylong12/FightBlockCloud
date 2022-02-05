@@ -23,4 +23,7 @@ exports.removeEarlyPrelims = functions.https.onRequest(removeEarlyPrelims);
 
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
-exports.helloWorld = functions.https.onRequest(updateScores);
+exports.helloWorld = functions.https.onRequest(async (request, response) => {
+
+    response.send(`Processed`);
+});

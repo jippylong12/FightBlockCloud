@@ -5,7 +5,7 @@ const functions = require("firebase-functions");
 const SharedFunctions = require("../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 
-module.exports = async (request, response) => {
+module.exports = async (context) => {
 
     let startDate = new Date();
     let endDate = new Date();
