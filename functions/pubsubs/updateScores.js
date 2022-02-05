@@ -169,6 +169,8 @@ module.exports = async (context) => {
             return 'Submission';
         } else if (method === 'KO'){
             return 'KO/TKO';
+        } else {
+            return method; // this is for the times after we have the correct terms
         }
     }
 
@@ -229,10 +231,10 @@ module.exports = async (context) => {
 
         // if we pick all winners then we give the Parlay bonus
         if (boutWinnerCount === pickList['picks'].length) {
-            for (let thisPick in pickList['picks']) {
+            pickList['picks'].forEach(function(thisPick) {
                 thisPick['score'] += 6;
                 pickList['score'] += thisPick['score'];
-            }
+            });
         }
 
         // update the time
