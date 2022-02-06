@@ -16,6 +16,12 @@ module.exports = async (context) => {
         return querySnapshot.docs.map(function(doc) { return {[doc.data()['EventId']]: [doc.id,doc.data()]}})
     });
 
+
+    let counter = 0;
+    let commitCounter = 0;
+    let batches = [];
+    batches[commitCounter] = admin.firestore().batch();
+
     for (const event of snapshot) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
@@ -31,11 +37,6 @@ module.exports = async (context) => {
 
 
                 // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
-                let counter = 0;
-                let commitCounter = 0;
-                let batches = [];
-
-                batches[commitCounter] = admin.firestore().batch();
 
                 let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", results['EventId']).get()
                 pickLists.forEach(function(list) {
@@ -91,9 +92,6 @@ module.exports = async (context) => {
                         batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
                     }
                 })
-
-                await sharedFunctions.writeToDb(batches);
-
             } else{
                 // it doesn't exist so add it
                 functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
@@ -105,7 +103,7 @@ module.exports = async (context) => {
         })
     }
 
-
+    await sharedFunctions.writeToDb(batches);
 
     return null;
 }

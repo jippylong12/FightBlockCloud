@@ -29,16 +29,15 @@ http://localhost:5001/fight-block/us-central1/helloWorld
 https://console.cloud.google.com/firestore/import-export?project=fight-block
 
 #### Download
-https://console.cloud.google.com/storage/browser/development-exports;tab=objects?forceOnBucketsSortingFiltering=false&project=fight-block&prefix=&forceOnObjectsSortingFiltering=false
-or
+You can find the folder name under the Bucket column
 ```shell
 gsutil -m cp -r \
-  "gs://development-exports/2022-02-05T20:48:49_83080" \
+  "gs://development-exports/2022-02-06T10:55:29_90600" \
   .
 rm -rf ~/fbExport && 
 mkdir ~/fbExport && 
-mv 2022-02-05T20:48:49_83080/* ~/fbExport/ && 
-rm -rf 2022-02-05T20:48:49_83080
+mv 2022-02-06T10:55:29_90600/* ~/fbExport/ && 
+rm -rf 2022-02-06T10:55:29_90600
 ```
 
 Then move to the 
