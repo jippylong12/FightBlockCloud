@@ -12,7 +12,7 @@ module.exports = function () {
         console.log("beginning write");
         for (var i = 0; i < arr.length; i++) {
             await this.oneSecond();
-            arr[i].commit().then(function () {
+            await arr[i].commit().then(function () {
                 console.log("wrote batch " + i);
             });
         }

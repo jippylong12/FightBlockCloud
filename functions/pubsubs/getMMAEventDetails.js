@@ -53,7 +53,13 @@ module.exports = async (context) => {
 
                     // update event data
                     listData['event'] = results;
-                    leagueUpdateMap[listData['leagueId']] = {[results['EventId']]: results};
+                    if(leagueUpdateMap.hasOwnProperty(listData['leagueId'])){
+                        if(!leagueUpdateMap[listData['leagueId']].hasOwnProperty(results['EventId'])){
+                            leagueUpdateMap[listData['leagueId']][results['EventId']] = results;
+                        }
+                    } else {
+                        leagueUpdateMap[listData['leagueId']] = {[results['EventId']]: results};
+                    }
                     // for each pick list, let's update the fight data
                     results['Fights'].forEach(function(fight) {
                         // exclude early prelims
