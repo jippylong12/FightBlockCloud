@@ -26,6 +26,7 @@ module.exports = async (context) => {
     // {leagueId: {userId: points}}
     let leagueUpdateMap = {}
 
+    // init batch
     let counter = 0;
     let commitCounter = 0;
     let batches = [];
@@ -114,13 +115,14 @@ module.exports = async (context) => {
                 });
             }
 
-            await sharedFunctions.writeToDb(batches);
 
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
         })
     }
+
+    await sharedFunctions.writeToDb(batches);
 
     return null;
 
@@ -152,7 +154,11 @@ module.exports = async (context) => {
     }
 
     function correctChosenMethod(pick) {
-        return pick['fightData']['ResultType'].includes(pick['methodChosen']);
+        if(pick['fightData']['ResultType'] === null){
+            return false;
+        } else{
+            return pick['fightData']['ResultType'].includes(pick['methodChosen']);
+        }
     }
 
     function correctChosenRound(pick) {
