@@ -82,7 +82,7 @@ module.exports = async (context) => {
 
             // update the league leaderboard
             for( let leagueId in leagueUpdateMap){
-                admin.firestore().collection("leagues").doc(leagueId).get().then(docSnapshot => {
+                await admin.firestore().collection("leagues").doc(leagueId).get().then(docSnapshot => {
                     let leagueData = docSnapshot.data();
 
                     leagueData['leaderboard'].forEach((userRow) => {
