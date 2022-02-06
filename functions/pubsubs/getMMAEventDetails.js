@@ -8,12 +8,11 @@ const functions = require("firebase-functions");
 module.exports = async (context) => {
 
     const FantasyDataClient = new fdClientModule(Constants.keys);
-    let snapshot = await admin.firestore().collection("events").where("Status", "==", "Scheduled").orderBy("DateTime", "desc").get().then(querySnapshot => {
-        return querySnapshot.docs.map(doc => doc.data())
-    });
-
-    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").where("Status", "==", "Scheduled").get().then(querySnapshot => {
-        return querySnapshot.docs.map(function(doc) { return {[doc.data()['EventId']]: [doc.id,doc.data()]}})
+    let oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
+    const filterDateTime = oneWeekAgo.toISOString();
+    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").where('DateTime', '>=', filterDateTime).orderBy("DateTime", "desc").get().then(querySnapshot => {
+        return querySnapshot.docs.map(function(doc) { return doc;})
     });
 
 
@@ -22,27 +21,39 @@ module.exports = async (context) => {
     let batches = [];
     batches[commitCounter] = admin.firestore().batch();
 
-    for (const event of snapshot) {
+    let events = JSON.parse(await FantasyDataClient.MMAv3ScoresClient.getSchedulePromise("UFC", 2022)).filter(event => event['DateTime'] >= filterDateTime)
+
+    let leagueUpdateMap = {} // {leagueId: {eventId: eventData}}
+
+    for (const event of events) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
-            let eventDetail = eventDetailSnapshot.find(item => item[results['EventId']]);
+            let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === results['EventId']);
 
             if (eventDetail) {
-                // if it exists
-                eventDetail = eventDetail[results['EventId']];
-                functions.logger.info(`Updating eventDetails ${JSON.stringify(eventDetail[0])}`, {structuredData: true});
+                functions.logger.info(`Updating eventDetails ${JSON.stringify(results['EventId'])}`, {structuredData: true});
 
                 // WE NEED TO UPDATE THE EVENT DETAILS FOR FUTURE CARDS AND THEN
-                await admin.firestore().collection('eventDetails').doc(eventDetail[0]).set(results)
+                if(counter <= 498){
+                    batches[commitCounter].set(admin.firestore().collection('eventDetails').doc(eventDetail.id), results);
+                    counter = counter + 1;
+                } else {
+                    counter = 0;
+                    commitCounter = commitCounter + 1;
+                    batches[commitCounter] = admin.firestore().batch();
+                    batches[commitCounter].set(admin.firestore().collection('eventDetails').doc(eventDetail.id), results);
+                }
 
 
                 // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
-
                 let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", results['EventId']).get()
                 pickLists.forEach(function(list) {
                     let updateId = list.id;
                     let listData = list.data();
 
+                    // update event data
+                    listData['event'] = results;
+                    leagueUpdateMap[listData['leagueId']] = {[results['EventId']]: results};
                     // for each pick list, let's update the fight data
                     results['Fights'].forEach(function(fight) {
                         // exclude early prelims
@@ -78,8 +89,6 @@ module.exports = async (context) => {
                         }
 
                     })
-
-
                     listData['picks'].sort(sharedFunctions.sortByOrder);
 
                     if(counter <= 498){
@@ -94,14 +103,52 @@ module.exports = async (context) => {
                 })
             } else{
                 // it doesn't exist so add it
-                functions.logger.info(`Adding eventDetails ${JSON.stringify(results)}`, {structuredData: true});
+                functions.logger.info(`Adding eventDetails ${JSON.stringify(results['EventId'])}`, {structuredData: true});
                 await  admin.firestore().collection('eventDetails').add(results);
             }
+
+
+
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
         })
     }
+
+    // we need to update leagues
+    let leagueIds = Object.keys(leagueUpdateMap);
+
+    while(leagueIds.length) {
+        let thisTen = leagueIds.splice(0,10);
+        await admin.firestore().collection('leagues').where(admin.firestore.FieldPath.documentId(), 'in', thisTen).get()
+            .then(function(leagues){
+                leagues.docs.forEach(function(league){
+                    let eventsToUpdate = leagueUpdateMap[league.id]
+                    let leagueData = league.data();
+
+                    let index = leagueData['events'].findIndex(event => eventsToUpdate.hasOwnProperty(event['EventId']))
+
+                    if(index !== -1){
+                        let event = leagueData['events'][index];
+                        leagueData['events'][index] = eventsToUpdate[event['EventId']]
+                    }
+
+
+                    if(counter <= 498){
+                        batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
+                        counter = counter + 1;
+                    } else {
+                        counter = 0;
+                        commitCounter = commitCounter + 1;
+                        batches[commitCounter] = admin.firestore().batch();
+                        batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
+                    }
+                });
+            })
+
+    }
+
+
 
     await sharedFunctions.writeToDb(batches);
 
