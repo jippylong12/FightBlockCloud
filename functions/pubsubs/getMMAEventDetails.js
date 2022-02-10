@@ -28,6 +28,9 @@ module.exports = async (context) => {
     for (const event of events) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
+            results['Fights']  = results['Fights'].filter(function(f) {
+                return f['Order'] && f['Status'] !== 'Canceled'
+            })
             let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === results['EventId']);
 
             if (eventDetail) {
