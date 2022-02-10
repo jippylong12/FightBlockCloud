@@ -21,10 +21,10 @@ module.exports = function () {
 
     this.sortByOrder = function ( a, b ){
         if ( a['fightData']['Order'] < b['fightData']['Order'] ){
-            return -1;
+            return 1;
         }
         if ( a['fightData']['Order'] > b['fightData']['Order'] ){
-            return 1;
+            return -1;
         }
         return 0;
     }
