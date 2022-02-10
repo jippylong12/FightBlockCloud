@@ -31,6 +31,7 @@ module.exports = async (context) => {
             results['Fights']  = results['Fights'].filter(function(f) {
                 return f['Order'] && f['Status'] !== 'Canceled' && f['CardSegment']
             })
+            results['Fights'].sort(sharedFunctions.sortByOrderFights)
             let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === results['EventId']);
 
             if (eventDetail) {
@@ -98,7 +99,7 @@ module.exports = async (context) => {
                         }
 
                     })
-                    listData['picks'].sort(sharedFunctions.sortByOrder);
+                    listData['picks'].sort(sharedFunctions.sortByOrderPicks);
 
                     if(counter <= 498){
                         batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)

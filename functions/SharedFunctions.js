@@ -19,11 +19,21 @@ module.exports = function () {
         console.log("done.");
     }
 
-    this.sortByOrder = function ( a, b ){
+    this.sortByOrderPicks = function ( a, b ){
         if ( a['fightData']['Order'] < b['fightData']['Order'] ){
             return 1;
         }
         if ( a['fightData']['Order'] > b['fightData']['Order'] ){
+            return -1;
+        }
+        return 0;
+    }
+
+    this.sortByOrderFights = function ( a, b ){
+        if ( a['Order'] < b['Order'] ){
+            return 1;
+        }
+        if ( a['Order'] > b['Order'] ){
             return -1;
         }
         return 0;
