@@ -7,7 +7,7 @@ const getMMAFighters = require('./pubsubs/getMMAFighters');
 const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const updateScores = require('./pubsubs/updateScores');
 const testing = require('./requests/testing');
-
+const addLeagueInviteCode = require('./requests/one-time/addLeagueInviteCode')
 admin.initializeApp();
 
 
@@ -18,4 +18,5 @@ exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(g
 exports.updateScores = functions.pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
+exports.addLeagueInviteCode = functions.https.onRequest(addLeagueInviteCode);
 exports.testing = functions.https.onRequest(testing);
