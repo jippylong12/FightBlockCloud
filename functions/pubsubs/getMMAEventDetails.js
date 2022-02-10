@@ -29,7 +29,7 @@ module.exports = async (context) => {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
             results = JSON.parse(results);
             results['Fights']  = results['Fights'].filter(function(f) {
-                return f['Order'] && f['Status'] !== 'Canceled'
+                return f['Order'] && f['Status'] !== 'Canceled' && f['CardSegment']
             })
             let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === results['EventId']);
 
@@ -66,7 +66,7 @@ module.exports = async (context) => {
                     // for each pick list, let's update the fight data
                     results['Fights'].forEach(function(fight) {
                         // exclude early prelims
-                        if(!(fight['CardSegment'] === null) && !(fight['CardSegment'] === 'Early Prelims')){
+                        if(!(fight['CardSegment'] === 'Early Prelims')){
                             // if the pick list doesn't allow prelims we don't want them either
                             // always allow main card events
                             if((fight['CardSegment'] === 'Prelims' && listData['prelims']) || fight['CardSegment'] === 'Main Card'){
