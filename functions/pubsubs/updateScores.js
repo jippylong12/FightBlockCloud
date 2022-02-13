@@ -130,10 +130,10 @@ module.exports = async (context) => {
         let nameA = a.score;
         let nameB = b.score;
         if (nameA < nameB) {
-            return -1;
+            return 1;
         }
         if (nameA > nameB) {
-            return 1;
+            return -1;
         }
 
         // names must be equal
