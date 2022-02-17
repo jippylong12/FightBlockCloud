@@ -231,7 +231,7 @@ module.exports = async (context) => {
         if (boutWinnerCount === pickList['picks'].length) {
             pickList['parlayBonus'] = true;
             pickList['picks'].forEach(function(thisPick) {
-                thisPick['score'] += 6;
+                thisPick['score'] += 4;
                 pickList['score'] += thisPick['score'];
             });
         }
