@@ -136,13 +136,15 @@ module.exports = async (context) => {
                     let eventsToUpdate = leagueUpdateMap[league.id]
                     let leagueData = league.data();
 
-                    let index = leagueData['events'].findIndex(event => eventsToUpdate.hasOwnProperty(event['EventId']))
 
-                    if(index !== -1){
-                        let event = leagueData['events'][index];
-                        leagueData['events'][index] = eventsToUpdate[event['EventId']]
+                    for (let eventUpdateId in eventsToUpdate) {
+                        eventUpdateId = parseInt(eventUpdateId);
+                        let index = leagueData['events'].findIndex(event => eventUpdateId === event['EventId'])
+
+                        if(index !== -1){
+                            leagueData['events'][index] = eventsToUpdate[eventUpdateId]
+                        }
                     }
-
 
                     if(counter <= 498){
                         batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
