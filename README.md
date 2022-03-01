@@ -5,7 +5,8 @@
 firebase emulators:start
 ```
 
-## Run with import data
+## Run with import data 
+(see below how to get the latest data)
 ```shell
 firebase emulators:start --import="/Users/marcus.salinas/fbExport/"
 ```
