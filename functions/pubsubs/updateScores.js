@@ -72,7 +72,12 @@ module.exports = async (context) => {
                         if(!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])){
                             leagueUpdateMap[pickList['leagueId']] = {};
                         }
-                        leagueUpdateMap[pickList['leagueId']][pickList['userId']] = pickList['score'];
+
+                        if(!leagueUpdateMap[pickList['leagueId']].hasOwnProperty(pickList['userId'])) {
+                            leagueUpdateMap[pickList['leagueId']][pickList['userId']] = pickList['score'];
+                        } else {
+                            leagueUpdateMap[pickList['leagueId']][pickList['userId']] += pickList['score'];
+                        }
                     })
                 });
 
