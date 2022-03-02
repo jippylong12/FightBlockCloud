@@ -129,7 +129,7 @@ module.exports = async (context) => {
 
     await sharedFunctions.writeToDb(batches);
 
-    response.send(`Processed`);
+    return null;
 
     function sortLeagueScoreboard(a, b){
         let nameA = a.score;
