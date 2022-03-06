@@ -7,10 +7,9 @@ const sharedFunctions = new SharedFunctions();
 
 module.exports = async (context) => {
 
-    let startDate = new Date();
+    let startDate = new Date(2022,0,1);
     let endDate = new Date();
     endDate.setDate(endDate.getDate()+2);
-    startDate.setDate(startDate.getDate()-2);
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
