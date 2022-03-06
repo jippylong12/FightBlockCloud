@@ -15,7 +15,12 @@ admin.initializeApp();
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(getMMASchedule);
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(getMMAFighters);
 exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(getMMAEventDetails);
-exports.updateScores = functions.pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
+exports.updateScores = functions.runWith({
+    // Ensure the function has enough memory and time
+    // to process large files
+    timeoutSeconds: 180,
+    memory: "512MB",
+}).pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
 exports.removeEarlyPrelims = functions.https.onRequest(removeEarlyPrelims);
