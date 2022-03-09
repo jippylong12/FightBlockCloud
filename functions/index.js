@@ -5,13 +5,17 @@ const admin = require('firebase-admin');
 const getMMASchedule = require('./pubsubs/getMMASchedule');
 const getMMAFighters = require('./pubsubs/getMMAFighters');
 const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
+const exportFirestore = require('./pubsubs/exportFirestore');
 const updateScores = require('./pubsubs/updateScores');
 const testing = require('./requests/testing');
 const removeEarlyPrelims = require('./requests/one-time/removeEarlyPrelims')
 admin.initializeApp();
 
 
+
+
 // pub subs
+exports.scheduledFirestoreExport = functions.pubsub.schedule('every 24 hours').onRun(exportFirestore);
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(getMMASchedule);
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(getMMAFighters);
 exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(getMMAEventDetails);
