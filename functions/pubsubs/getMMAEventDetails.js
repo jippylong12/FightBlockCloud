@@ -11,7 +11,9 @@ module.exports = async (context) => {
     let oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
     const filterDateTime = oneWeekAgo.toISOString();
-    let eventDetailSnapshot = await admin.firestore().collection("eventDetails").where('DateTime', '>=', filterDateTime).orderBy("DateTime", "desc").get().then(querySnapshot => {
+    let eventDetailSnapshot = await admin.firestore().collection("eventDetails")
+        .where('DateTime', '>=', filterDateTime)
+        .orderBy("DateTime", "desc").get().then(querySnapshot => {
         return querySnapshot.docs.map(function(doc) { return doc;})
     });
 
@@ -21,7 +23,8 @@ module.exports = async (context) => {
     let batches = [];
     batches[commitCounter] = admin.firestore().batch();
 
-    let events = JSON.parse(await FantasyDataClient.MMAv3ScoresClient.getSchedulePromise("UFC", 2022)).filter(event => event['DateTime'] >= filterDateTime)
+    let events = JSON.parse(await FantasyDataClient.MMAv3ScoresClient
+        .getSchedulePromise("UFC", 2022)).filter(event => event['DateTime'] >= filterDateTime)
 
     let leagueUpdateMap = {} // {leagueId: {eventId: eventData}}
 
@@ -72,7 +75,7 @@ module.exports = async (context) => {
                             // always allow main card events
                             if((fight['CardSegment'] === 'Prelims' && listData['prelims']) || fight['CardSegment'] === 'Main Card'){
 
-                                let pickIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
+                                let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === fight['FightId']);
 
                                 // we don't want these ones
 
