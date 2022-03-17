@@ -196,7 +196,8 @@ module.exports = async (context) => {
                             pick['score'] += 4;
                         }
                     }
-                } else if(correctChosenRound(pick)){
+                } else if(correctChosenRound(pick) && pick['fightData']['ResultType'].includes('Decision')){
+                    // decision results come in as the last round so we just ignore them
                     pick['score'] += 6;
                 }
             } else {
