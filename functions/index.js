@@ -7,8 +7,9 @@ const getMMAFighters = require('./pubsubs/getMMAFighters');
 const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const exportFirestore = require('./pubsubs/exportFirestore');
 const updateScores = require('./pubsubs/updateScores');
-const testing = require('./requests/testing');
+const eventNotifications = require('./pubsubs/eventNotifications')
 const removeEarlyPrelims = require('./requests/one-time/removeEarlyPrelims')
+const testing = require('./requests/testing');
 admin.initializeApp();
 
 
@@ -19,6 +20,7 @@ exports.scheduledFirestoreExport = functions.pubsub.schedule('every 24 hours').o
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(getMMASchedule);
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(getMMAFighters);
 exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(getMMAEventDetails);
+exports.getMMAEventDetails = functions.pubsub.schedule('every 1 hour').onRun(eventNotifications);
 exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files

@@ -4,8 +4,107 @@ const fdClientModule = require("fantasydata-node-client");
 const Constants = require("../pubsubs/Constants");
 const functions = require("firebase-functions");
 const sharedFunctions = new SharedFunctions();
+const { DateTime, Duration } = require("luxon");
 
 module.exports  = async (request, response) => {
+
+    // look at events and find the first that is not final
+    function findNextEventIndex(leagueData){
+        return leagueData['events'].findIndex(item => item["Status"] !== "Final");
+    }
+
+    let leagueSnapshot = await admin.firestore().collection("leagues")
+        .where('completeAt', '==', null)
+        .get().then(querySnapshot => {
+            return querySnapshot.docs.map(function(doc) { return doc;})
+        });
+
+    let counter = 0;
+    let commitCounter = 0;
+    let batches = [];
+
+    batches[commitCounter] = admin.firestore().batch();
+
+    for (const leagueDoc of leagueSnapshot) {
+        const leagueData = leagueDoc.data();
+        const nextEventIndex = findNextEventIndex(leagueData);
+
+        // get the next event in this league
+        if(nextEventIndex !== -1){
+            const topic = 'league-' + leagueData.id;
+            const nextEvent = leagueData['events'][nextEventIndex];
+            const nextEventId = nextEvent['EventId'];
+            const now = DateTime.now();
+            const eventDateTime = DateTime.fromISO(nextEvent['DateTime'], { zone: "America/New_York" });
+
+            // check if we are within the 48 or 12 hours
+            // true if we have already sent
+            const twoDayBool = leagueData['notifications'][nextEventId]['twoDays'] === true
+            const twelveHoursBool = leagueData['notifications'][nextEventId]['twelveHours'] === true
+
+            // add the new object if we don't have it for some reason
+            if(leagueData['notifications'] === undefined){
+                leagueData['notifications'] = {};
+                leagueData['notifications'][nextEventId] = {
+                    'twoDays': false,
+                    'twelveHours': false,
+                };
+            }
+
+            if (leagueData['notifications'][nextEventId] === undefined){
+                leagueData['notifications'][nextEventId] = {
+                    'twoDays': false,
+                    'twelveHours': false,
+                };
+            }
+
+            let sending = false;
+            let body = "";
+            if(now.plus(Duration.fromObject({ days: 2})) > eventDateTime && !twoDayBool){
+                sending = true;
+                body = "Only 2 days left before the picks lock this week!"
+                leagueData['notifications'][nextEventId]['twoDays'] = true;
+            } else if (now.plus(Duration.fromObject({ hours: 12})) > eventDateTime && !twelveHoursBool) {
+                sending = true;
+                body = "Only 12 hours left before the picks lock this week!"
+                leagueData['notifications'][nextEventId]['twelveHours'] = true;
+            }
+
+
+            if(sending){
+                // send the message
+                const message = {
+                    notification: {
+                        title: leagueData['name'] + " - Have you set your picks?",
+                        body: body
+                    },
+                    data: {},
+                    topic: topic
+                };
+
+                // Send a message to devices subscribed to the provided topic.
+                await admin.messaging().send(message)
+                    .then((response) => {
+                        console.log('Successfully sent message:', response);
+                    })
+                    .catch((error) => {
+                        console.log('Error sending message:', error);
+                    });
+
+                // gather to update the league ids by batch
+                if(counter <= 498){
+                    batches[commitCounter].set(admin.firestore().collection('leagues').doc(leagueDoc.id), leagueData)
+                    counter = counter + 1;
+                } else {
+                    counter = 0;
+                    commitCounter = commitCounter + 1;
+                    batches[commitCounter] = admin.firestore().batch();
+                }
+            }
+        }
+    }
+
+    await sharedFunctions.writeToDb(batches);
 
     response.send(`Processed`);
 
