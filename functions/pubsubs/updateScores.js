@@ -170,6 +170,7 @@ module.exports = async (context) => {
     }
 
     function scorePick(pick){
+
         let pickedWinner = false;
 
         // only if the contest is done
@@ -196,7 +197,7 @@ module.exports = async (context) => {
                             pick['score'] += 4;
                         }
                     }
-                } else if(correctChosenRound(pick) && pick['fightData']['ResultType'].includes('Decision')){
+                } else if(correctChosenRound(pick) && !pick['fightData']['ResultType'].includes('Decision')){
                     // decision results come in as the last round so we just ignore them
                     pick['score'] += 6;
                 }
