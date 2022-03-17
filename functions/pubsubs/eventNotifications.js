@@ -1,14 +1,9 @@
 const admin = require("firebase-admin");
 const SharedFunctions = require("../SharedFunctions");
-const {DateTime, Duration} = require("luxon");
+const luxon = require("luxon");
 const sharedFunctions = new SharedFunctions();
 
 module.exports = async (context) => {
-    // look at events and find the first that is not final
-    function findNextEventIndex(leagueData){
-        return leagueData['events'].findIndex(item => item["Status"] !== "Final");
-    }
-
     let leagueSnapshot = await admin.firestore().collection("leagues")
         .where('completeAt', '==', null)
         .get().then(querySnapshot => {
@@ -23,15 +18,15 @@ module.exports = async (context) => {
 
     for (const leagueDoc of leagueSnapshot) {
         const leagueData = leagueDoc.data();
-        const nextEventIndex = findNextEventIndex(leagueData);
+        const nextEventIndex = leagueData['events'].findIndex(item => item["Status"] !== "Final");
 
         // get the next event in this league
         if(nextEventIndex !== -1){
             const topic = 'league-' + leagueDoc.id;
             const nextEvent = leagueData['events'][nextEventIndex];
             const nextEventId = nextEvent['EventId'];
-            const now = DateTime.now();
-            const eventDateTime = DateTime.fromISO(nextEvent['DateTime'], { zone: "America/New_York" });
+            const now = luxon.DateTime.now();
+            const eventDateTime = luxon.DateTime.fromISO(nextEvent['DateTime'], { zone: "America/New_York" });
 
             // add the new object if we don't have it for some reason
             if(leagueData['notifications'] === undefined){
@@ -56,11 +51,11 @@ module.exports = async (context) => {
 
             let sending = false;
             let body = "";
-            if(now.plus(Duration.fromObject({ days: 2})) > eventDateTime && !twoDayBool){
+            if(now.plus(luxon.Duration.fromObject({ days: 2})) > eventDateTime && !twoDayBool){
                 sending = true;
                 body = "Only 2 days left before the picks lock this week!"
                 leagueData['notifications'][nextEventId]['twoDays'] = true;
-            } else if (now.plus(Duration.fromObject({ hours: 12})) > eventDateTime && !twelveHoursBool) {
+            } else if (now.plus(luxon.Duration.fromObject({ hours: 12})) > eventDateTime && !twelveHoursBool) {
                 sending = true;
                 body = "Only 12 hours left before the picks lock this week!"
                 leagueData['notifications'][nextEventId]['twelveHours'] = true;
@@ -102,7 +97,6 @@ module.exports = async (context) => {
     }
 
     await sharedFunctions.writeToDb(batches);
-
 
     return null;
 }
