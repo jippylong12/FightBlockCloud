@@ -20,7 +20,7 @@ exports.scheduledFirestoreExport = functions.pubsub.schedule('every 24 hours').o
 exports.getMMASchedule = functions.pubsub.schedule('every 24 hours').onRun(getMMASchedule);
 exports.getMMAFighters = functions.pubsub.schedule('every 24 hours').onRun(getMMAFighters);
 exports.getMMAEventDetails = functions.pubsub.schedule('every 12 hours').onRun(getMMAEventDetails);
-exports.getMMAEventDetails = functions.pubsub.schedule('every 1 hour').onRun(eventNotifications);
+exports.eventNotifications = functions.pubsub.schedule('every 1 hour').onRun(eventNotifications);
 exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files

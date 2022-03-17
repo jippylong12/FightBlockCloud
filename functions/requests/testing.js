@@ -4,9 +4,7 @@ const fdClientModule = require("fantasydata-node-client");
 const Constants = require("../pubsubs/Constants");
 const functions = require("firebase-functions");
 const sharedFunctions = new SharedFunctions();
-const { DateTime, Duration } = require("luxon");
 
 module.exports  = async (request, response) => {
     response.send(`Processed`);
-
 }
