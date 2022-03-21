@@ -83,7 +83,12 @@ module.exports = async (context) => {
                                     // replace the current fight data
                                     listData['picks'][pickIndex]['fightData'] = fight;
                                 } else {
-                                    // add the new item
+                                    // if there is an item in the list that has the same order we need to remove it
+                                    let foundIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
+                                    if(foundIndex !== -1){
+                                        listData['picks'].splice(foundIndex,1)
+                                    }
+                                    // then add the new item
                                     listData['picks'].push({
                                         perfectHit: false,
                                         fighterIdChosen: null,
