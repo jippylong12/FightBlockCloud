@@ -57,15 +57,8 @@ module.exports = async (context) => {
 
 
 
-                        if(counter <= 498){
-                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
-                            counter = counter + 1;
-                        } else {
-                            counter = 0;
-                            commitCounter = commitCounter + 1;
-                            batches[commitCounter] = admin.firestore().batch();
-                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
-                        }
+                        admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
+
 
 
                         if(!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])){
