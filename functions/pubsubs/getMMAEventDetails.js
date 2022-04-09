@@ -162,7 +162,11 @@ module.exports = async (context) => {
                 // fight doesn't exist so we need to remove this
                 let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === list['fightData']['FightId']);
                 indexesToRemove.push(pickIndex)
-            } else {
+            } else if (fighterResult['CardSegment'] !== 'Main Card' && fighterResult['CardSegment'] !== 'Prelims') {
+                let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === list['fightData']['FightId']);
+                indexesToRemove.push(pickIndex)
+            }
+            else {
                 // check order and CardSegment
                 let orderBool = fighterResult['Order'] === list['fightData']['Order'];
                 let cardSegmentBool = fighterResult['CardSegment'] === list['fightData']['CardSegment'];
