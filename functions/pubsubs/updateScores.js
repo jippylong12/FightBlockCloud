@@ -47,6 +47,10 @@ module.exports = async (context) => {
                         pickList['picks'].forEach(pick => {
                             results['Fights'].forEach((fight) => {
                                 if(pick['fightData']['FightId'] === fight['FightId']){
+                                    if(fight['ResultType'] === null) {
+                                        fight['ResultType'] = "";
+                                    }
+
                                     pick['fightData'] = fight;
                                 }
                             });
