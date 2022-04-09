@@ -55,69 +55,7 @@ module.exports = async (context) => {
                 // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
                 let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", results['EventId']).get()
                 pickLists.forEach(function(list) {
-                    let updateId = list.id;
-                    let listData = list.data();
-
-                    // update event data
-                    listData['event'] = results;
-                    if(leagueUpdateMap.hasOwnProperty(listData['leagueId'])){
-                        if(!leagueUpdateMap[listData['leagueId']].hasOwnProperty(results['EventId'])){
-                            leagueUpdateMap[listData['leagueId']][results['EventId']] = results;
-                        }
-                    } else {
-                        leagueUpdateMap[listData['leagueId']] = {[results['EventId']]: results};
-                    }
-                    // for each pick list, let's update the fight data
-                    results['Fights'].forEach(function(fight) {
-                        // exclude early prelims
-                        if(!(fight['CardSegment'] === 'Early Prelims')){
-                            // if the pick list doesn't allow prelims we don't want them either
-                            // always allow main card events
-                            if((fight['CardSegment'] === 'Prelims' && listData['prelims']) || fight['CardSegment'] === 'Main Card'){
-
-                                let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === fight['FightId']);
-
-                                // we don't want these ones
-
-                                if(pickIndex !== -1){
-                                    // replace the current fight data
-                                    listData['picks'][pickIndex]['fightData'] = fight;
-                                } else {
-                                    // if there is an item in the list that has the same order we need to remove it
-                                    let foundIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
-                                    if(foundIndex !== -1){
-                                        listData['picks'].splice(foundIndex,1)
-                                    }
-                                    // then add the new item
-                                    listData['picks'].push({
-                                        perfectHit: false,
-                                        fighterIdChosen: null,
-                                        roundChosen: null,
-                                        FotNBool: false,
-                                        correctWinnerBool: null,
-                                        fightData: fight,
-                                        score: 0,
-                                        methodChosen: null,
-                                    });
-                                }
-                            }
-
-
-
-                        }
-
-                    })
-                    listData['picks'].sort(sharedFunctions.sortByOrderPicks);
-
-                    if(counter <= 498){
-                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
-                        counter = counter + 1;
-                    } else {
-                        counter = 0;
-                        commitCounter = commitCounter + 1;
-                        batches[commitCounter] = admin.firestore().batch();
-                        batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
-                    }
+                   updatePickLists(list, results, counter, commitCounter, batches);
                 })
             } else{
                 // it doesn't exist so add it
@@ -141,28 +79,7 @@ module.exports = async (context) => {
         await admin.firestore().collection('leagues').where(admin.firestore.FieldPath.documentId(), 'in', thisTen).get()
             .then(function(leagues){
                 leagues.docs.forEach(function(league){
-                    let eventsToUpdate = leagueUpdateMap[league.id]
-                    let leagueData = league.data();
-
-
-                    for (let eventUpdateId in eventsToUpdate) {
-                        eventUpdateId = parseInt(eventUpdateId);
-                        let index = leagueData['events'].findIndex(event => eventUpdateId === event['EventId'])
-
-                        if(index !== -1){
-                            leagueData['events'][index] = eventsToUpdate[eventUpdateId]
-                        }
-                    }
-
-                    if(counter <= 498){
-                        batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
-                        counter = counter + 1;
-                    } else {
-                        counter = 0;
-                        commitCounter = commitCounter + 1;
-                        batches[commitCounter] = admin.firestore().batch();
-                        batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
-                    }
+                    updateLeagueData(league, counter, commitCounter, batches)
                 });
             })
 
@@ -173,4 +90,104 @@ module.exports = async (context) => {
     await sharedFunctions.writeToDb(batches);
 
     return null;
+
+
+    // this will try to find the fight data in the pickList. If we find it then replace the data, if there is a clash of order
+    // then we need to remove the old one because we assume it's been replaced
+    // otherwise we just add it because we will be sorting it later
+    function updateFightData(fight, listData) {
+        // exclude early prelims
+        if(!(fight['CardSegment'] === 'Early Prelims')){
+            // if the pick list doesn't allow prelims we don't want them either
+            // always allow main card events
+            if((fight['CardSegment'] === 'Prelims' && listData['prelims']) || fight['CardSegment'] === 'Main Card'){
+
+                let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === fight['FightId']);
+
+                // we don't want these ones
+
+                if(pickIndex !== -1){
+                    // replace the current fight data
+                    listData['picks'][pickIndex]['fightData'] = fight;
+                } else {
+                    // if there is an item in the list that has the same order we need to remove it
+                    let foundIndex = listData['picks'].findIndex(item => item['fightData']['Order'] === fight['Order']);
+                    if(foundIndex !== -1){
+                        listData['picks'].splice(foundIndex,1)
+                    }
+                    // then add the new item
+                    listData['picks'].push({
+                        perfectHit: false,
+                        fighterIdChosen: null,
+                        roundChosen: null,
+                        FotNBool: false,
+                        correctWinnerBool: null,
+                        fightData: fight,
+                        score: 0,
+                        methodChosen: null,
+                    });
+                }
+            }
+        }
+    }
+
+    // take a pick list and update the event data and then update the fighter data and finally sort and add to batch
+    function updatePickLists(list, results, counter, commitCounter, batches){
+        let updateId = list.id;
+        let listData = list.data();
+
+        // update event data
+        listData['event'] = results;
+        if(leagueUpdateMap.hasOwnProperty(listData['leagueId'])){
+            if(!leagueUpdateMap[listData['leagueId']].hasOwnProperty(results['EventId'])){
+                leagueUpdateMap[listData['leagueId']][results['EventId']] = results;
+            }
+        } else {
+            leagueUpdateMap[listData['leagueId']] = {[results['EventId']]: results};
+        }
+        // for each pick list, let's update the fight data
+        results['Fights'].forEach(function(fight) {
+            updateFightData(fight, listData);
+        })
+
+        // we need to check that all the current fight data are still
+
+        listData['picks'].sort(sharedFunctions.sortByOrderPicks);
+
+        if(counter <= 498){
+            batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
+            counter = counter + 1;
+        } else {
+            counter = 0;
+            commitCounter = commitCounter + 1;
+            batches[commitCounter] = admin.firestore().batch();
+            batches[commitCounter].set(admin.firestore().collection('pickLists').doc(updateId), listData)
+        }
+    }
+
+    // take a league and update the event data which we use for new PickLists
+    function updateLeagueData(league, counter, commitCounter, batches) {
+        let eventsToUpdate = leagueUpdateMap[league.id]
+        let leagueData = league.data();
+
+
+        for (let eventUpdateId in eventsToUpdate) {
+            eventUpdateId = parseInt(eventUpdateId);
+            let index = leagueData['events'].findIndex(event => eventUpdateId === event['EventId'])
+
+            if(index !== -1){
+                leagueData['events'][index] = eventsToUpdate[eventUpdateId]
+            }
+        }
+
+        if(counter <= 498){
+            batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
+            counter = counter + 1;
+        } else {
+            counter = 0;
+            commitCounter = commitCounter + 1;
+            batches[commitCounter] = admin.firestore().batch();
+            batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
+        }
+    }
 }
