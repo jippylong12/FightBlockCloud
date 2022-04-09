@@ -8,7 +8,7 @@ const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const exportFirestore = require('./pubsubs/exportFirestore');
 const updateScores = require('./pubsubs/updateScores');
 const eventNotifications = require('./pubsubs/eventNotifications')
-const updateLeagueNamesWithProfileIds = require('./requests/one-time/updateLeagueNamesWithProfileIds')
+const changeResultTypeToString = require('./requests/one-time/changeResultTypeToString')
 const testing = require('./requests/testing');
 admin.initializeApp();
 
@@ -29,5 +29,5 @@ exports.updateScores = functions.runWith({
 }).pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
-exports.updateLeagueNamesWithProfileIds = functions.https.onRequest(updateLeagueNamesWithProfileIds);
-exports.testing = functions.https.onRequest(getMMAEventDetails);
+exports.changeResultTypeToString = functions.https.onRequest(changeResultTypeToString);
+exports.testing = functions.https.onRequest(testing);

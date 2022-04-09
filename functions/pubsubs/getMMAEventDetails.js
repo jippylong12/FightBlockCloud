@@ -165,8 +165,7 @@ module.exports = async (context) => {
             } else if (fighterResult['CardSegment'] !== 'Main Card' && fighterResult['CardSegment'] !== 'Prelims') {
                 let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === list['fightData']['FightId']);
                 indexesToRemove.push(pickIndex)
-            }
-            else {
+            } else {
                 // check order and CardSegment
                 let orderBool = fighterResult['Order'] === list['fightData']['Order'];
                 let cardSegmentBool = fighterResult['CardSegment'] === list['fightData']['CardSegment'];
