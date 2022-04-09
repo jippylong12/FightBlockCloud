@@ -150,7 +150,47 @@ module.exports = async (context) => {
             updateFightData(fight, listData);
         })
 
+        let indexesToRemove = [];
         // we need to check that all the current fight data are still
+        listData['picks'].forEach(function (list) {
+
+            // get result
+            let resultIndex = results['Fights'].findIndex(item => list['fightData']['FightId'] === item['FightId']);
+            const fighterResult = results['Fights'][resultIndex];
+
+            if(resultIndex === -1 ) {
+                // fight doesn't exist so we need to remove this
+                let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === list['fightData']['FightId']);
+                indexesToRemove.push(pickIndex)
+            } else {
+                // check order and CardSegment
+                let orderBool = fighterResult['Order'] === list['fightData']['Order'];
+                let cardSegmentBool = fighterResult['CardSegment'] === list['fightData']['CardSegment'];
+
+                // if the same do nothing otherwise check if this list has prelims or not and remove or keep based on value
+                if (orderBool && cardSegmentBool) {}
+                else {
+                    // if segment in results does not equal Prelims or Main Card we remove
+                    if (fighterResult['CardSegment'] !== 'Main Card' && fighterResult['CardSegment'] !== 'Prelims') {
+                        let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === list['fightData']['FightId']);
+                        indexesToRemove.push(pickIndex)
+                    } else {
+                        if ( !list['prelims'] && fighterResult['CardSegment'] === 'Prelims') {
+                            let pickIndex = listData['picks'].findIndex(item => item['fightData']['FightId'] === list['fightData']['FightId']);
+                            indexesToRemove.push(pickIndex)
+                        }
+                    }
+                }
+            }
+
+
+        });
+
+        indexesToRemove.sort().reverse();
+
+        for (const index of indexesToRemove) {
+            listData['picks'].splice(index,1)
+        }
 
         listData['picks'].sort(sharedFunctions.sortByOrderPicks);
 

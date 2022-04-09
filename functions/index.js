@@ -30,4 +30,4 @@ exports.updateScores = functions.runWith({
 
 // request functions
 exports.updateLeagueNamesWithProfileIds = functions.https.onRequest(updateLeagueNamesWithProfileIds);
-exports.testing = functions.https.onRequest(testing);
+exports.testing = functions.https.onRequest(getMMAEventDetails);
