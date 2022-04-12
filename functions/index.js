@@ -10,6 +10,7 @@ const updateScores = require('./pubsubs/updateScores');
 const eventNotifications = require('./pubsubs/eventNotifications')
 const changeResultTypeToString = require('./requests/one-time/changeResultTypeToString')
 const testing = require('./requests/testing');
+const updateLeagueNamesWithProfileIds = require("./requests/one-time/updateLeagueNamesWithProfileIds")
 admin.initializeApp();
 
 
@@ -30,4 +31,5 @@ exports.updateScores = functions.runWith({
 
 // request functions
 exports.changeResultTypeToString = functions.https.onRequest(changeResultTypeToString);
+exports.updateLeagueNamesWithProfileIds = functions.https.onRequest(updateLeagueNamesWithProfileIds);
 exports.testing = functions.https.onRequest(testing);
