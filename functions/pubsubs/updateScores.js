@@ -5,8 +5,10 @@ const functions = require("firebase-functions");
 const SharedFunctions = require("../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 
-module.exports = async (context) => {
+module.exports = async (context, response) => {
 
+    // TODO: basically I had issues this last week with scoring. For some reason it would work but then reset everything
+    // just in case I need to try another one this one will not use batch at all, but it may slow down
     let startDate = new Date(2022,0,1);
     let endDate = new Date();
     endDate.setDate(endDate.getDate()+2);
@@ -25,29 +27,29 @@ module.exports = async (context) => {
     // {leagueId: {userId: points}}
     let leagueUpdateMap = {}
 
+    // init batch
+    let counter = 0;
+    let commitCounter = 0;
+    let batches = [];
+    batches[commitCounter] = admin.firestore().batch();
+
     for (const event of snapshot) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
-            // init batch
-            let counter = 0;
-            let commitCounter = 0;
-            let batches = [];
-            batches[commitCounter] = admin.firestore().batch();
-
             results = JSON.parse(results);
 
             // find all pickLists with this event
             await admin.firestore().collection("pickLists")
-                .where("eventId","==", event['EventId']).get().then(pickListsSnapshot => {
+                .where("eventId","==", event['EventId']).get().then(async pickListsSnapshot => {
 
-                    pickListsSnapshot.docs.forEach(doc => {
+                    for (const doc of pickListsSnapshot.docs) {
                         let pickList = doc.data();
 
 
                         // replace the fight data with the right data
                         pickList['picks'].forEach(pick => {
                             results['Fights'].forEach((fight) => {
-                                if(pick['fightData']['FightId'] === fight['FightId']){
-                                    if(fight['ResultType'] === null) {
+                                if (pick['fightData']['FightId'] === fight['FightId']) {
+                                    if (fight['ResultType'] === null) {
                                         fight['ResultType'] = "";
                                     }
 
@@ -60,49 +62,33 @@ module.exports = async (context) => {
                         scorePickList(pickList);
 
 
+                        await admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
 
 
-                        if(counter <= 498){
-                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
-                            counter = counter + 1;
-                        } else {
-                            counter = 0;
-                            commitCounter = commitCounter + 1;
-                            batches[commitCounter] = admin.firestore().batch();
-                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
-                        }
-
-
-                        if(!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])){
+                        if (!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])) {
                             leagueUpdateMap[pickList['leagueId']] = {};
                         }
 
-                        if(!leagueUpdateMap[pickList['leagueId']].hasOwnProperty(pickList['userId'])) {
+                        if (!leagueUpdateMap[pickList['leagueId']].hasOwnProperty(pickList['userId'])) {
                             leagueUpdateMap[pickList['leagueId']][pickList['userId']] = pickList['score'];
                         } else {
                             leagueUpdateMap[pickList['leagueId']][pickList['userId']] += pickList['score'];
                         }
-                    })
+                    }
                 });
 
-            await sharedFunctions.writeToDb(batches);
 
             console.log("League Update Map");
             console.log(JSON.stringify(leagueUpdateMap));
 
-            // init batch
-            counter = 0;
-            commitCounter = 0;
-            batches = [];
-            batches[commitCounter] = admin.firestore().batch();
             // update the league leaderboard
             for( let leagueId in leagueUpdateMap){
-                await admin.firestore().collection("leagues").doc(leagueId).get().then(docSnapshot => {
+                await admin.firestore().collection("leagues").doc(leagueId).get().then(async docSnapshot => {
                     let leagueData = docSnapshot.data();
 
                     leagueData['leaderboard'].forEach((userRow) => {
                         // if we have this user updated pickList then we replace it
-                        if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
+                        if (leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
                             userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
                         }
                     })
@@ -110,27 +96,18 @@ module.exports = async (context) => {
                     leagueData['leaderboard'].sort(sortLeagueScoreboard);
                     leagueData['leaderboard'].forEach((userRow, index) => {
                         userRow['rank'] = index + 1;
-                        userRow['rankText'] = getRankText(index+1);
+                        userRow['rankText'] = getRankText(index + 1);
                         // if we have this user updated pickList then we replace it
-                        if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])){
+                        if (leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
                             userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
                         }
                     })
 
 
-                    if(counter <= 498){
-                        batches[commitCounter].set(admin.firestore().collection("leagues").doc(leagueId), leagueData)
-                        counter = counter + 1;
-                    } else {
-                        counter = 0;
-                        commitCounter = commitCounter + 1;
-                        batches[commitCounter] = admin.firestore().batch();
-                        batches[commitCounter].set(admin.firestore().collection("leagues").doc(leagueId), leagueData)
-                    }
+                    await admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
                 });
             }
 
-            await sharedFunctions.writeToDb(batches);
 
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
@@ -138,7 +115,7 @@ module.exports = async (context) => {
         })
     }
 
-    return null;
+    response.send(`Processed`);
 
     function sortLeagueScoreboard(a, b){
         let nameA = a.score;
