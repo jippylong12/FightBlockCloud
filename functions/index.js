@@ -26,7 +26,7 @@ exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
     timeoutSeconds: 180,
-    memory: "512MB",
+    memory: "1GB",
 }).pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
