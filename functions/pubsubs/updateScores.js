@@ -25,14 +25,14 @@ module.exports = async (context) => {
     // {leagueId: {userId: points}}
     let leagueUpdateMap = {}
 
-    // init batch
-    let counter = 0;
-    let commitCounter = 0;
-    let batches = [];
-    batches[commitCounter] = admin.firestore().batch();
-
     for (const event of snapshot) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
+            // init batch
+            let counter = 0;
+            let commitCounter = 0;
+            let batches = [];
+            batches[commitCounter] = admin.firestore().batch();
+
             results = JSON.parse(results);
 
             // find all pickLists with this event
@@ -61,8 +61,16 @@ module.exports = async (context) => {
 
 
 
-                        admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
 
+                        if(counter <= 498){
+                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
+                            counter = counter + 1;
+                        } else {
+                            counter = 0;
+                            commitCounter = commitCounter + 1;
+                            batches[commitCounter] = admin.firestore().batch();
+                            batches[commitCounter].set(admin.firestore().collection("pickLists").doc(doc.id), pickList)
+                        }
 
 
                         if(!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])){
@@ -77,10 +85,16 @@ module.exports = async (context) => {
                     })
                 });
 
+            await sharedFunctions.writeToDb(batches);
 
             console.log("League Update Map");
             console.log(JSON.stringify(leagueUpdateMap));
 
+            // init batch
+            counter = 0;
+            commitCounter = 0;
+            batches = [];
+            batches[commitCounter] = admin.firestore().batch();
             // update the league leaderboard
             for( let leagueId in leagueUpdateMap){
                 await admin.firestore().collection("leagues").doc(leagueId).get().then(docSnapshot => {
@@ -116,14 +130,13 @@ module.exports = async (context) => {
                 });
             }
 
+            await sharedFunctions.writeToDb(batches);
 
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
         })
     }
-
-    await sharedFunctions.writeToDb(batches);
 
     return null;
 
