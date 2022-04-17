@@ -12,9 +12,14 @@ module.exports = function () {
         console.log("beginning write");
         for (var i = 0; i < arr.length; i++) {
             await this.oneSecond();
-            await arr[i].commit().then(function () {
-                console.log("wrote batch " + i);
-            });
+            try {
+                await arr[i].commit().then(function () {
+                    console.log("wrote batch " + i);
+                });
+            } catch (e) {
+                console.log(e);
+            }
+
         }
         console.log("done.");
     }
