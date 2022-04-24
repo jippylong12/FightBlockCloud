@@ -5,16 +5,14 @@
  * each week we can use updateScore to set the new historical
  */
 const admin = require("firebase-admin");
-const SharedFunctions = require("../../SharedFunctions");
 const fdClientModule = require("fantasydata-node-client");
 const Constants = require("../../pubsubs/Constants");
 const functions = require("firebase-functions");
-const sharedFunctions = new SharedFunctions();
 
 module.exports = async (request, response) => {
     let startDate = new Date(2022,0,1);
     let endDate = new Date();
-    endDate.setDate(endDate.getDate()+2);
+    endDate.setDate(endDate.getDate()-7);
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
