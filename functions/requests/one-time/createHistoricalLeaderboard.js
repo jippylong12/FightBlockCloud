@@ -1,11 +1,17 @@
-const Constants = require("./Constants");
-const fdClientModule = require("fantasydata-node-client");
+/**
+ * 2022/04/25
+ * We ran into a problem with update scores because we only added the score from last week. So to add all the scores we
+ * would have to recalculate all the scores every week. So instead, we need to run this once to generate that sum and then
+ * each week we can use updateScore to set the new historical
+ */
 const admin = require("firebase-admin");
+const SharedFunctions = require("../../SharedFunctions");
+const fdClientModule = require("fantasydata-node-client");
+const Constants = require("../../pubsubs/Constants");
 const functions = require("firebase-functions");
-const SharedFunctions = require("../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 
-module.exports = async (context, response) => {
+module.exports = async (request, response) => {
     let startDate = new Date(2022,0,1);
     let endDate = new Date();
     endDate.setDate(endDate.getDate()+2);
@@ -23,12 +29,6 @@ module.exports = async (context, response) => {
     // which leagues to update.
     // {leagueId: {userId: points}}
     let leagueUpdateMap = {}
-
-    // init batch
-    let counter = 0;
-    let commitCounter = 0;
-    let batches = [];
-    batches[commitCounter] = admin.firestore().batch();
 
     for (const event of snapshot) {
         await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
@@ -58,10 +58,6 @@ module.exports = async (context, response) => {
                         // score the pickList
                         scorePickList(pickList);
 
-
-                        await admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
-
-
                         if (!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])) {
                             leagueUpdateMap[pickList['leagueId']] = {};
                         }
@@ -75,67 +71,42 @@ module.exports = async (context, response) => {
                 });
 
 
-            console.log("League Update Map");
-            console.log(JSON.stringify(leagueUpdateMap));
-
-            // update the league leaderboard
-            for( let leagueId in leagueUpdateMap){
-                await admin.firestore().collection("leagues").doc(leagueId).get().then(async docSnapshot => {
-                    let leagueData = docSnapshot.data();
-
-                    leagueData['leaderboard'].forEach((userRow) => {
-                        // if we have this user updated pickList then we replace it
-                        if (leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
-                            userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
-                        }
-                    })
-
-                    leagueData['leaderboard'].sort(sortLeagueScoreboard);
-                    leagueData['leaderboard'].forEach((userRow, index) => {
-                        userRow['rank'] = index + 1;
-                        userRow['rankText'] = getRankText(index + 1);
-                        // if we have this user updated pickList then we replace it
-                        if (leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
-                            userRow['score'] = leagueUpdateMap[leagueId][userRow['userId']];
-                        }
-                    })
-
-
-                    await admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
-                });
-            }
-
-
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
         })
     }
 
+
+    console.log("League Update Map");
+    console.log(JSON.stringify(leagueUpdateMap));
+
+    // update the league leaderboard
+    for( let leagueId in leagueUpdateMap){
+        await admin.firestore().collection("leagues").doc(leagueId).get().then(async docSnapshot => {
+            let leagueData = docSnapshot.data();
+
+            if(!leagueData.hasOwnProperty('scoresMap')){
+                leagueData['scoresData'] = {};
+            }
+
+            if(!leagueData.hasOwnProperty('scoresMap')){
+                leagueData['scoresData']['scoresMap'] = {};
+            }
+            leagueData['memberIds'].forEach(function(memberId) {
+                if(leagueUpdateMap[leagueId].hasOwnProperty(memberId)) {
+                    leagueData['scoresData']['scoresMap'][memberId] = leagueUpdateMap[leagueId][memberId];
+                } else {
+                    leagueData['scoresData']['scoresMap'][memberId] = 0.0;
+                }
+            });
+
+            await admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
+        });
+    }
+
     response.send(`Processed`);
 
-    function sortLeagueScoreboard(a, b){
-        let nameA = a.score;
-        let nameB = b.score;
-        if (nameA < nameB) {
-            return 1;
-        }
-        if (nameA > nameB) {
-            return -1;
-        }
-
-        // names must be equal
-        return 0;
-    }
-
-    // depending on their rank we need to return the text
-    function getRankText(rank){
-        if(rank === 1){ return "1st"; }
-        else if (rank === 2){ return "2nd"; }
-        else if (rank === 3){ return "3rd";}
-        else if (rank < 21) { return `${rank}th`}
-        else{ return rank.toString();}
-    }
 
     function correctChosenFighter(pick) {
         return pick['fighterIdChosen'] === pick['fightData']['WinnerId'];
@@ -234,4 +205,5 @@ module.exports = async (context, response) => {
         pickList['updatedAtScores'] = new Date().toISOString();
 
     }
+
 }
