@@ -27,8 +27,9 @@ exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
     timeoutSeconds: 180,
+    memory: "128MB",
 }).pubsub.schedule('*/10 13-22 * * 5').onRun(updateScores);
 
 // request functions
-exports.testing = functions.https.onRequest(updateScores);
+exports.testing = functions.https.onRequest(testing);
 exports.createHistoricalLeaderboard = functions.https.onRequest(createHistoricalLeaderboard);
