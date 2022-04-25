@@ -26,12 +26,9 @@ exports.eventNotifications = functions.pubsub.schedule('every hour').onRun(event
 exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
-    timeoutSeconds: 540,
-    memory: "1GB",
-}).pubsub.schedule('*/10 13-22 * * 6').onRun(updateScores);
+    timeoutSeconds: 180,
+}).pubsub.schedule('*/10 13-22 * * 5').onRun(updateScores);
 
 // request functions
-exports.changeResultTypeToString = functions.https.onRequest(changeResultTypeToString);
-exports.updateLeagueNamesWithProfileIds = functions.https.onRequest(updateLeagueNamesWithProfileIds);
-exports.testing = functions.https.onRequest(testing);
+exports.testing = functions.https.onRequest(updateScores);
 exports.createHistoricalLeaderboard = functions.https.onRequest(createHistoricalLeaderboard);

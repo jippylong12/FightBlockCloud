@@ -17,7 +17,7 @@ module.exports = async (request, response) => {
     let isoStringEnd = endDate.toISOString();
 
     const FantasyDataClient = new fdClientModule(Constants.keys);
-    let snapshot = await admin.firestore().collection("events")
+    let snapshot = await admin.firestore().collection("eventDetails")
         .where("DateTime",">", isoStringStart)
         .where("DateTime","<", isoStringEnd)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
