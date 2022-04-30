@@ -28,7 +28,7 @@ exports.updateScores = functions.runWith({
     // to process large files
     timeoutSeconds: 180,
     memory: "128MB",
-}).pubsub.schedule('*/10 13-22 * * 6').onRun(updateScores);
+}).pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
 exports.testing = functions.https.onRequest(testing);
