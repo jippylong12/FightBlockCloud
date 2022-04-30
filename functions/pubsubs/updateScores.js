@@ -117,9 +117,17 @@ module.exports = async (context) => {
             updateLeaderboardsAt = updateLeaderboardsAt.toISOString();
             now = now.toISOString();
 
+
             // set the variables
             saveBool = now > updatedScoresAt;
             updateLeaderboard = now > updateLeaderboardsAt;
+
+            console.log(`now ${now}`)
+            console.log(`updatedScoresAt ${updatedScoresAt}`)
+            console.log(`save bool ${saveBool}`)
+
+            console.log(`updateLeaderboardsAt ${updateLeaderboardsAt}`)
+            console.log(`updateLeaderboard ${updateLeaderboard}`)
 
         } else {
             // we haven't saved yet
