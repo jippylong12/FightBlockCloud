@@ -9,7 +9,7 @@ module.exports = async (context) => {
 
     const FantasyDataClient = new fdClientModule(Constants.keys);
     let oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 14); // 7 days from today
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
     const filterDateTime = oneWeekAgo.toISOString();
     let eventDetailSnapshot = await admin.firestore().collection("eventDetails")
         .where('DateTime', '>=', filterDateTime)
