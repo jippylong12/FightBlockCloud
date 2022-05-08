@@ -173,7 +173,9 @@ module.exports = async (context) => {
         if(leagueUpdateMap[leagueId]['saveScores']){
             if(saveBool) {
                 // when did we save
-                let now = new Date(2022,4,8, 7,0,0);
+                let now = new Date();
+                // let now = new Date(2022,4,8, 7,0,0);
+
                 now.setDate(now.getDate());
                 leagueData['scoresData']['updatedAt'] = now.toISOString();
                 leagueData['leaderboard'].forEach((userRow) => {
