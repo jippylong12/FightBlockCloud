@@ -9,7 +9,7 @@ module.exports = async (context) => {
 
     const FantasyDataClient = new fdClientModule(Constants.keys);
     let oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 14); // 7 days from today
     const filterDateTime = oneWeekAgo.toISOString();
     let eventDetailSnapshot = await admin.firestore().collection("eventDetails")
         .where('DateTime', '>=', filterDateTime)
@@ -220,8 +220,12 @@ module.exports = async (context) => {
 
             if(index !== -1){
                 leagueData['events'][index] = eventsToUpdate[eventUpdateId]
+            } else {
+                leagueData['events'].push(eventsToUpdate[eventUpdateId])
             }
         }
+
+        leagueData['events'].sort(sortByDateTime)
 
         if(counter <= 498){
             batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
@@ -232,5 +236,15 @@ module.exports = async (context) => {
             batches[commitCounter] = admin.firestore().batch();
             batches[commitCounter].set(admin.firestore().collection('leagues').doc(league.id), leagueData)
         }
+    }
+
+    function sortByDateTime ( a, b ) {
+        if ( a['DateTime'] > b['DateTime'] ){
+            return 1;
+        }
+        if (  a['DateTime'] < b['DateTime']  ){
+            return -1;
+        }
+        return 0;
     }
 }
