@@ -100,6 +100,14 @@ module.exports = async (context) => {
         let saveBool = false;
         let updateLeaderboard = true;
 
+        if(!leagueData.hasOwnProperty('scoresData')){
+            leagueData['scoresData'] = {};
+        }
+
+        if(!leagueData['scoresData'].hasOwnProperty('scoresMap')){
+            leagueData['scoresData']['scoresMap'] = {};
+        }
+
         // check if we need to save ScoresData by first checking if we've already updated in the last 7 days
         // Otherwise, since the score function runs every X minutes, we will increase forever
         // we need to also check if we should update the leaderboard which we should not if it's been updated in the last day
@@ -143,7 +151,7 @@ module.exports = async (context) => {
                 if (leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
                     userRow['score'] =
                         leagueUpdateMap[leagueId][userRow['userId']] +
-                        leagueData['scoresData']['scoresMap'][userRow['userId']];
+                        leagueData['scoresData']['scoresMap'][userRow['userId']] || 0;
                 }
             })
 

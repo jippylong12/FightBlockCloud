@@ -84,11 +84,11 @@ module.exports = async (request, response) => {
         await admin.firestore().collection("leagues").doc(leagueId).get().then(async docSnapshot => {
             let leagueData = docSnapshot.data();
 
-            if(!leagueData.hasOwnProperty('scoresMap')){
+            if(!leagueData.hasOwnProperty('scoresData')){
                 leagueData['scoresData'] = {};
             }
 
-            if(!leagueData.hasOwnProperty('scoresMap')){
+            if(!leagueData['scoresData'].hasOwnProperty('scoresMap')){
                 leagueData['scoresData']['scoresMap'] = {};
             }
             leagueData['memberIds'].forEach(function(memberId) {
