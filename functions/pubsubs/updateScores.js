@@ -177,12 +177,7 @@ module.exports = async (context) => {
                 now.setDate(now.getDate());
                 leagueData['scoresData']['updatedAt'] = now.toISOString();
                 leagueData['leaderboard'].forEach((userRow) => {
-                    // update this leaderboard score as the new standard
-                    if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
-                        leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'] + leagueUpdateMap[leagueId][userRow['userId']];
-                    } else {
-                        leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'];
-                    }
+                    leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'];
                 })
             }
         }
