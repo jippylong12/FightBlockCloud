@@ -99,6 +99,7 @@ module.exports = async (request, response) => {
                 }
             });
 
+            leagueData['scoresData']['updatedAt'] = new Date(2022,4,1,7,0,0).toISOString()
             await admin.firestore().collection("leagues").doc(leagueId).set(leagueData);
         });
     }

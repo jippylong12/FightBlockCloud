@@ -97,7 +97,7 @@ module.exports = async (context) => {
     // save the scores permanently in the scoresData. We only do this if all picks are completed
     // also save scores to the leaderboard unless we've saved score recently
     function saveScores(leagueData, leagueUpdateMap, leagueId) {
-        let saveBool = false;
+        let saveBool;
         let updateLeaderboard = true;
 
         if(!leagueData.hasOwnProperty('scoresData')){
@@ -106,6 +106,13 @@ module.exports = async (context) => {
 
         if(!leagueData['scoresData'].hasOwnProperty('scoresMap')){
             leagueData['scoresData']['scoresMap'] = {};
+            leagueData['memberIds'].forEach(function(memberId) {
+                if(leagueUpdateMap[leagueId].hasOwnProperty(memberId)) {
+                    leagueData['scoresData']['scoresMap'][memberId] = leagueUpdateMap[leagueId][memberId];
+                } else {
+                    leagueData['scoresData']['scoresMap'][memberId] = 0.0;
+                }
+            });
         }
 
         // check if we need to save ScoresData by first checking if we've already updated in the last 7 days
@@ -172,13 +179,12 @@ module.exports = async (context) => {
                 leagueData['leaderboard'].forEach((userRow) => {
                     // update this leaderboard score as the new standard
                     if(leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
-                        leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'];
+                        leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'] + leagueUpdateMap[leagueId][userRow['userId']];
                     } else {
-                        leagueData['scoresData']['scoresMap'][userRow['userId']] = 0.0;
+                        leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'];
                     }
                 })
             }
-
         }
 
     }
@@ -280,7 +286,7 @@ module.exports = async (context) => {
                 boutWinnerCount += 1;
             }
 
-            if(thisPick['fightData']['Status'] === 'Final'){
+            if(thisPick['fightData']['Status'] === 'Final' || thisPick['fightData']['Status'] === 'Canceled'){
                 finalizeCount += 1;
             }
 
