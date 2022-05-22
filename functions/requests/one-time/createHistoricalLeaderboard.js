@@ -54,7 +54,7 @@ module.exports = async (request, response) => {
                         });
 
                         // score the pickList
-                        scorePickList(pickList);
+                        scorePickList(pickList, isoStringEnd);
 
                         if (!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])) {
                             leagueUpdateMap[pickList['leagueId']] = {};
@@ -169,7 +169,7 @@ module.exports = async (request, response) => {
     }
 
     // loop through the pickList and score it
-    function scorePickList(pickList) {
+    function scorePickList(pickList, isoStringEnd) {
         pickList['score'] = 0;
         pickList['locked'] = true;
         let boutWinnerCount = 0;
@@ -201,7 +201,7 @@ module.exports = async (request, response) => {
         }
 
         // update the time
-        pickList['updatedAtScores'] = new Date().toISOString();
+        pickList['updatedAtScores'] = isoStringEnd;
 
     }
 
