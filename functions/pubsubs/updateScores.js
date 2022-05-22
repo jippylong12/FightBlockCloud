@@ -153,6 +153,7 @@ module.exports = async (context) => {
         // we only want to update if we haven't updated this week
         // otherwise the new data will save and we will then add this week's calc to this week's calc from the save
         if(updateLeaderboard) {
+            console.log('updating Leaderboard');
             leagueData['leaderboard'].forEach((userRow) => {
                 // if we have this user updated pickList then we replace it
                 if (leagueUpdateMap[leagueId].hasOwnProperty(userRow['userId'])) {
@@ -167,11 +168,14 @@ module.exports = async (context) => {
                 userRow['rank'] = index + 1;
                 userRow['rankText'] = getRankText(index + 1);
             })
+
+            console.log(leagueData['leaderboard']);
         }
 
         // only update once a week after all the picks are set
         if(leagueUpdateMap[leagueId]['saveScores']){
             if(saveBool) {
+                console.log("Permanently updating scores for the week")
                 // when did we save
                 let now = new Date();
                 // let now = new Date(2022,4,8, 7,0,0);
@@ -181,6 +185,8 @@ module.exports = async (context) => {
                 leagueData['leaderboard'].forEach((userRow) => {
                     leagueData['scoresData']['scoresMap'][userRow['userId']] = userRow['score'];
                 })
+
+                console.log(leagueData['scoresData']['scoresMap'])
             }
         }
 
