@@ -8,6 +8,7 @@ const admin = require("firebase-admin");
 const fdClientModule = require("fantasydata-node-client");
 const Constants = require("../../pubsubs/Constants");
 const functions = require("firebase-functions");
+const {scorePickList} = require("../../pubsubs/Constants");
 
 module.exports = async (request, response) => {
     let startDate = new Date(2022,0,1);
@@ -68,7 +69,6 @@ module.exports = async (request, response) => {
                     }
                 });
 
-
         }).catch(error => {
             functions.logger.error("Client failed!", {structuredData: true});
             functions.logger.error(error, {structuredData: true});
@@ -105,104 +105,5 @@ module.exports = async (request, response) => {
     }
 
     response.send(`Processed`);
-
-
-    function correctChosenFighter(pick) {
-        return pick['fighterIdChosen'] === pick['fightData']['WinnerId'];
-    }
-
-    function correctChosenMethod(pick) {
-        if(pick['fightData']['ResultType'] === null){
-            return false;
-        } else{
-            return pick['fightData']['ResultType'].includes(pick['methodChosen']);
-        }
-    }
-
-    function correctChosenRound(pick) {
-        return pick['roundChosen'] === pick['fightData']['ResultRound'];
-    }
-
-    function scorePick(pick){
-
-        let pickedWinner = false;
-
-        // only if the contest is done
-        if(pick['fightData']['Status'] === 'Final'){
-            pick['score'] = 0; // reset
-            pick['perfectHit'] = false;
-            // winner correct?
-            if (correctChosenFighter(pick)) {
-                pick['correctWinnerBool'] = true;
-                pickedWinner = true;
-                pick['score'] += 2;
-                // method correct?
-                if (correctChosenMethod(pick)) {
-                    if (pick['methodChosen'] === 'Decision') {
-                        pick['score'] += 10;
-                    } else {
-                        // round correct?
-                        if (correctChosenRound(pick)) {
-                            pick['score'] += 10; // for method and round
-                            pick['perfectHit'] = true; // set true
-                            pick['score'] *= 3; // Perfect Hit multiplier
-                        } else {
-                            // just the points for the correct method
-                            pick['score'] += 4;
-                        }
-                    }
-                } else if(correctChosenRound(pick) && !pick['fightData']['ResultType'].includes('Decision')){
-                    // decision results come in as the last round so we just ignore them
-                    pick['score'] += 6;
-                }
-            } else {
-                // we do nothing since they didn't make the right pick
-            }
-
-            if (pick['FotNBool']) {
-                // double score of the bout
-                pick['score'] *= 2;
-            }
-        }
-
-        return pickedWinner;
-    }
-
-    // loop through the pickList and score it
-    function scorePickList(pickList, isoStringEnd) {
-        pickList['score'] = 0;
-        pickList['locked'] = true;
-        let boutWinnerCount = 0;
-        let finalizeCount = 0; // if all picks are in the final state we want to finalize the PickCard
-        pickList['picks'].forEach(function(thisPick) {
-
-            if(scorePick(thisPick)){
-                boutWinnerCount += 1;
-            }
-
-            if(thisPick['fightData']['Status'] === 'Final'){
-                finalizeCount += 1;
-            }
-
-            pickList['score'] += thisPick['score'];
-        });
-
-        // if we pick all winners then we give the Parlay bonus
-        if (boutWinnerCount === pickList['picks'].length) {
-            pickList['parlayBonus'] = true;
-            pickList['picks'].forEach(function(thisPick) {
-                thisPick['score'] += 4;
-                pickList['score'] += thisPick['score'];
-            });
-        }
-
-        if(finalizeCount === pickList['picks'].length){
-            pickList['active'] = false;
-        }
-
-        // update the time
-        pickList['updatedAtScores'] = isoStringEnd;
-
-    }
 
 }
