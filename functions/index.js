@@ -8,10 +8,9 @@ const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const exportFirestore = require('./pubsubs/exportFirestore');
 const updateScores = require('./pubsubs/updateScores');
 const eventNotifications = require('./pubsubs/eventNotifications')
-const changeResultTypeToString = require('./requests/one-time/changeResultTypeToString')
+const cleanRoadToUFCEvents = require('./requests/one-time/cleanRoadToUFCEvents')
 const testing = require('./requests/testing');
 const createHistoricalLeaderboard = require('./requests/one-time/createHistoricalLeaderboard')
-const updateLeagueNamesWithProfileIds = require("./requests/one-time/updateLeagueNamesWithProfileIds")
 admin.initializeApp();
 
 
@@ -33,3 +32,4 @@ exports.updateScores = functions.runWith({
 // request functions
 exports.testing = functions.https.onRequest(testing);
 exports.createHistoricalLeaderboard = functions.https.onRequest(createHistoricalLeaderboard);
+exports.cleanRoadToUFCEvents = functions.https.onRequest(cleanRoadToUFCEvents);
