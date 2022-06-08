@@ -17,7 +17,7 @@
     "dateformat": "^5.0.2",
     "fantasydata-node-client": "^1.5.3",
     "firebase-admin": "^9.8.0",
-    "firebase-functions": "^3.20.0",
+    "firebase-functions": "^3.21.2",
     "luxon": "^2.3.1",
     "uuid": "^8.3.2"
   },
