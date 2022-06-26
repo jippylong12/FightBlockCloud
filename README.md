@@ -34,10 +34,10 @@ https://console.cloud.google.com/firestore/import-export?project=fight-block
 You can find the folder name under the Bucket column
 ```shell
 gsutil -m cp -r \
-  "gs://development-exports/2022-06-21T14:14:05_69032" \
+  "gs://development-exports/2022-06-26T14:14:04_88104" \
   .
 rm -rf ~/fbExport && 
 mkdir ~/fbExport && 
-mv 2022-06-21T14:14:05_69032/* ~/fbExport/ && 
-rm -rf 2022-06-21T14:14:05_69032
+mv 2022-06-26T14:14:04_88104/* ~/fbExport/ && 
+rm -rf 2022-06-26T14:14:04_88104
 ```

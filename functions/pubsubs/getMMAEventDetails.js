@@ -151,7 +151,7 @@ module.exports = async (context) => {
         let recentFightIds = {}; // order => fightId We need to keep track of the most recent fight IDs so we know which to remove
         let allFightIds = {}; // we will go through the array one more time to make sure that we keep only those available
         results['Fights'].forEach(function(fight) {
-            updateFightData(fight, listData, recentFightIds);
+            updateFightData(fight, listData, recentFightIds, allFightIds);
         })
 
         // add new fights, update any old fight data
