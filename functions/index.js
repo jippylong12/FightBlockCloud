@@ -31,5 +31,10 @@ exports.updateScores = functions.runWith({
 
 // request functions
 exports.testing = functions.https.onRequest(testing);
-exports.createHistoricalLeaderboard = functions.https.onRequest(createHistoricalLeaderboard);
+exports.createHistoricalLeaderboard = functions.runWith({
+    // Ensure the function has enough memory and time
+    // to process large files
+    timeoutSeconds: 180,
+    memory: "256MB",
+}).https.onRequest(createHistoricalLeaderboard);
 exports.cleanRoadToUFCEvents = functions.https.onRequest(cleanRoadToUFCEvents);

@@ -93,6 +93,12 @@ function correctChosenFighter(pick) {
 }
 
 function correctChosenMethod(pick) {
+    if(pick['methodChosen'] === 'KTO/TKO') {
+        if(pick['fightData']['ResultType'] === 'KO/TKO'){
+            console.log("I'm dumb");
+        }
+        pick['methodChosen'] = 'KO/TKO';
+    }
     if(pick['fightData']['ResultType'] === null){
         return false;
     } else{
