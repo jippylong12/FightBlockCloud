@@ -178,8 +178,8 @@ module.exports = async (context) => {
             if(saveBool) {
                 console.log("Permanently updating scores for the week")
                 // when did we save
-                // let now = new Date();
-                let now = new Date(2022,6,3,9);
+                let now = new Date();
+                // let now = new Date(2022,6,3,9);
 
                 now.setDate(now.getDate());
                 leagueData['scoresData']['updatedAt'] = now.toISOString();
