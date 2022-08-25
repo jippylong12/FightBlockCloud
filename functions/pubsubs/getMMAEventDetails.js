@@ -30,7 +30,8 @@ module.exports = async (context) => {
     let batches = [];
     batches[commitCounter] = admin.firestore().batch();
 
-    let events = JSON.parse(await client.getEvents().filter(event => event['date'] >= filterDateTime));
+    let events = await client.getEvents();
+    events = events.filter(event => event['date'] >= filterDateTime)
 
     return null;
 

@@ -1,4 +1,5 @@
 const Constants = require("../pubsubs/Constants");
+const axios = require('axios').default;
 
 class FantasyAnalyticsClient {
     authToken = '';
@@ -6,19 +7,15 @@ class FantasyAnalyticsClient {
 
 
     async login() {
-        if (this.authorized()) {
-            fetch(`${this.baseUrl}/auth`, {
-                method: "POST",
-                body: JSON.stringify({
-                    'username': Constants.keys.username,
-                    'password': Constants.keys.password,
-                })
-            })
-                .then((response) => response.json())
+        if (!this.authorized()) {
+            await axios.post(`${this.baseUrl}/security/token`, {
+                    'username': Constants.keys.FAUsername,
+                    'password': Constants.keys.FAPassword,}
+            ,)
                 .then((data) => {
-                    this.authToken = data.token;
+                    this.authToken = data.data.token;
                     return true;
-                }).catch(() => false);
+                }).catch((err) => false);
         }
     }
 
@@ -32,21 +29,23 @@ class FantasyAnalyticsClient {
     // Clean up the data - Date needs to remove the Z String
     async getEvents() {
         if (this.authorized()) {
-            fetch(`${this.baseUrl}/events?pageSize=50`, {
-                method: "GET",
+            let data = await axios.get(`${this.baseUrl}/events?pageSize=50`, {
                 headers: {
                     'Authorization': this.authToken,
                 },
             })
-                .then((response) => response.json()).then((data) => {
-                    data.filter((event) => event['promotionId'] === 1).map((event) => {
+                .then((data) => {
+                    let d = data.data;
+                    d = d.filter((event) => event['promotionId'] === 1).map((event) => {
                         event['date'] = event['date'].replace("Z", "");
                         return event;
                     });
-                    return data;
-            }).catch(() => {
+                    return d;
+            }).catch((err) => {
                     return {};
             });
+
+            return data;
         } else {
             return {};
         }
