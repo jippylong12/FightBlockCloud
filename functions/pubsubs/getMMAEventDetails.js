@@ -264,7 +264,7 @@ module.exports = async (context, response) => {
 
         function setStatus(fights) {
             for (const fight of fights) {
-                if(fight['Status'] !== 'Finished'){
+                if(fight['Status'] !== 'Final'){
                     return 'Active';
                 }
             }
@@ -281,7 +281,7 @@ module.exports = async (context, response) => {
             ];
             fight['Order'] = fight['order'];
             fight['EventId'] = fight['eventId'];
-            fight['Status'] = fight['fightStatus'];
+            fight['Status'] = chooseFightStatus(fight);
             fight['WinnerId'] = chooseWinner(fight);
             fight['ResultType'] = chooseFinishType(fight);
             fight['ResultRound'] = fight['finishedAtRound'];
@@ -349,6 +349,14 @@ module.exports = async (context, response) => {
                 return 'KO/TKO'
             } else {
                 return fight['finishType'];
+            }
+        }
+
+        function chooseFightStatus(fight) {
+            if(fight['fightStatus'] === 'Finished') {
+                return 'Final';
+            } else {
+                return fight['fightStatus'];
             }
         }
     }
