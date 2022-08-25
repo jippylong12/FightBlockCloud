@@ -35,10 +35,10 @@ module.exports = function () {
     }
 
     this.sortByOrderFights = function ( a, b ){
-        if ( a['Order'] < b['Order'] ){
+        if ( a['order'] < b['order'] ){
             return 1;
         }
-        if ( a['Order'] > b['Order'] ){
+        if ( a['order'] > b['order'] ){
             return -1;
         }
         return 0;

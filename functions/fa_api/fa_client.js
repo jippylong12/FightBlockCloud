@@ -10,8 +10,9 @@ class FantasyAnalyticsClient {
         if (!this.authorized()) {
             await axios.post(`${this.baseUrl}/security/token`, {
                     'username': Constants.keys.FAUsername,
-                    'password': Constants.keys.FAPassword,}
-            ,)
+                    'password': Constants.keys.FAPassword,
+                }
+                ,)
                 .then((data) => {
                     this.authToken = data.data.token;
                     return true;
@@ -41,14 +42,26 @@ class FantasyAnalyticsClient {
                         return event;
                     });
                     return d;
-            }).catch((err) => {
+                }).catch((err) => {
                     return {};
-            });
+                });
 
             return data;
         } else {
             return {};
         }
+    }
+
+    async getEvent(id) {
+        let _data = await axios.get(`${this.baseUrl}/fight/event/${id}`, { headers: {
+                'Authorization': this.authToken,
+            },}).then((response) => {
+            return response.data;
+        }).catch((response) => {
+            console.log(response);
+        })
+
+        return _data;
     }
 
 

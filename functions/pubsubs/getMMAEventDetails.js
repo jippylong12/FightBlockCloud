@@ -6,11 +6,10 @@ const sharedFunctions = new SharedFunctions();
 const functions = require("firebase-functions");
 const FantasyAnalyticsClient = require("../fa_api/fa_client");
 
-module.exports = async (context) => {
+module.exports = async (context, response) => {
     let client = new FantasyAnalyticsClient();
     await client.login();
 
-    const FantasyDataClient = new fdClientModule(Constants.keys);
     let oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
     const filterDateTime = oneWeekAgo.toISOString();
@@ -33,43 +32,47 @@ module.exports = async (context) => {
     let events = await client.getEvents();
     events = events.filter(event => event['date'] >= filterDateTime)
 
-    return null;
 
     let leagueUpdateMap = {} // {leagueId: {eventId: eventData}}
 
     for (const event of events) {
-        await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
-            results = JSON.parse(results);
-            results['Fights']  = results['Fights'].filter(function(f) {
-                return f['Order'] && f['Status'] !== 'Canceled' && f['CardSegment']
+        const eventId = event.id;
+        await client.getEvent(eventId).then(async results => {
+            results = {
+                'fights': results
+            }
+            results['fights']  = results['fights'].filter(function(f) {
+                return f['order'] && f['fightStatus'] !== 'Canceled'
             })
-            results['Fights'].sort(sharedFunctions.sortByOrderFights)
-            let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === results['EventId']);
+
+
+            results['fights'].sort(sharedFunctions.sortByOrderFights)
+            let eventDetail = eventDetailSnapshot.find(item => item.data()['id'] === eventId);
 
             if (eventDetail) {
-                functions.logger.info(`Updating eventDetails ${JSON.stringify(results['EventId'])}`, {structuredData: true});
+                functions.logger.info(`Updating eventDetails ${JSON.stringify(eventId)}`, {structuredData: true});
 
                 // WE NEED TO UPDATE THE EVENT DETAILS FOR FUTURE CARDS AND THEN
                 if(counter <= 498){
-                    batches[commitCounter].set(admin.firestore().collection('eventDetails').doc(eventDetail.id), results);
+                    batches[commitCounter].set(admin.firestore().collection('apis/v2/eventDetails').doc(eventDetail.id), results);
                     counter = counter + 1;
                 } else {
                     counter = 0;
                     commitCounter = commitCounter + 1;
                     batches[commitCounter] = admin.firestore().batch();
-                    batches[commitCounter].set(admin.firestore().collection('eventDetails').doc(eventDetail.id), results);
+                    batches[commitCounter].set(admin.firestore().collection('apis/v2/eventDetails').doc(eventDetail.id), results);
                 }
 
 
                 // GET ALL PICK LISTS WITH SAME ID AND THEN UPDATE THAT DATA AS WELL
-                let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", results['EventId']).get()
+                let pickLists = await admin.firestore().collection("pickLists").where("eventId", "==", eventId).get()
                 pickLists.forEach(function(list) {
                    updatePickLists(list, results, counter, commitCounter, batches);
                 })
             } else{
                 // it doesn't exist so add it
-                functions.logger.info(`Adding eventDetails ${JSON.stringify(results['EventId'])}`, {structuredData: true});
-                await  admin.firestore().collection('eventDetails').add(results);
+                functions.logger.info(`Adding eventDetails ${JSON.stringify(eventId)}`, {structuredData: true});
+                await  admin.firestore().collection('apis/v2/eventDetails').add(results);
             }
 
 
@@ -98,7 +101,7 @@ module.exports = async (context) => {
 
     await sharedFunctions.writeToDb(batches);
 
-    return null;
+    return response.send("howdy");
 
 
     // this will try to find the fight data in the pickList. If we find it then replace the data, if there is a clash of order
