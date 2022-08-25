@@ -38,16 +38,13 @@ module.exports = async (context, response) => {
     for (const event of events) {
         const eventId = event.id;
         await client.getEvent(eventId).then(async results => {
-            results = {
-                'fights': results
-            }
-            results['fights']  = results['fights'].filter(function(f) {
-                return f['order'] && f['fightStatus'] !== 'Canceled'
+            results = transformData(event,results);
+
+            results['Fights']  = results['Fights'].filter(function(f) {
+                return f['Order'] && f['Status'] !== 'Canceled'
             })
-
-
-            results['fights'].sort(sharedFunctions.sortByOrderFights)
-            let eventDetail = eventDetailSnapshot.find(item => item.data()['id'] === eventId);
+            results['Fights'].sort(sharedFunctions.sortByOrderFights)
+            let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === eventId);
 
             if (eventDetail) {
                 functions.logger.info(`Updating eventDetails ${JSON.stringify(eventId)}`, {structuredData: true});
@@ -166,7 +163,7 @@ module.exports = async (context, response) => {
             updateFightData(fight, listData, recentFightIds, allFightIds);
         })
 
-        // add new fights, update any old fight data
+        // add new Fights, update any old fight data
         listData['picks'] = listData['picks'].filter(function(pick) {
             const order = pick['fightData']['Order']
             if(recentFightIds.hasOwnProperty(order)) {
@@ -234,5 +231,125 @@ module.exports = async (context, response) => {
             return -1;
         }
         return 0;
+    }
+
+    // convert API v2 data to how the DB is formed in v1
+    function transformData(event, results) {
+        for(const r of results) {
+            updateFightKeys(r);
+        }
+
+        event['EventId'] = event['id'];
+        event['Day']  = event['date'];
+        event['DateTime'] = new Date(`${event['date'].split("T")[0].trim()} ${event['time']} Z`).toISOString().replace("Z", "");
+        event['Name'] = event['name'];
+        event['ShortName'] = event['name'].split(":")[0].trim();
+        event['Status'] = setStatus(results)
+
+        delete event['id'];
+        delete event['time'];
+        delete event['date'];
+        delete event['name'];
+
+
+
+
+        results = {
+            'Active': true,
+            'Fights': results,
+        }
+
+        return Object.assign(event, results);
+
+
+        function setStatus(fights) {
+            for (const fight of fights) {
+                if(fight['Status'] !== 'Finished'){
+                    return 'Active';
+                }
+            }
+
+            return 'Final';
+        }
+
+        function updateFightKeys(fight) {
+            updateFighterObject(fight['fighterRed']);
+            updateFighterObject(fight['fighterBlue']);
+            fight['Fighters'] = [
+                fight['fighterRed'],
+                fight['fighterBlue'],
+            ];
+            fight['Order'] = fight['order'];
+            fight['EventId'] = fight['eventId'];
+            fight['Status'] = fight['fightStatus'];
+            fight['WinnerId'] = chooseWinner(fight);
+            fight['ResultType'] = chooseFinishType(fight);
+            fight['ResultRound'] = fight['finishedAtRound'];
+            fight['Rounds'] = fight['totalRound'];
+            fight['CardSegment'] = chooseCardSegment(fight);
+
+            delete fight['order'];
+            delete fight['eventId'];
+            delete fight['winner'];
+            delete fight['fightStatus'];
+            delete fight['fighterBlue'];
+            delete fight['fighterRed'];
+            delete fight['finishType'];
+            delete fight['finishedAtRound'];
+            delete fight['totalRound'];
+            delete fight['fighterRedId'];
+            delete fight['fighterBlueId'];
+
+        }
+
+        function updateFighterObject(fighter) {
+            fighter['FighterId'] = fighter['id'];
+            fighter['FirstName'] = fighter['firstName'];
+            fighter['LastName'] = fighter['lastName'];
+
+            delete fighter['id'];
+            delete fighter['firstName'];
+            delete fighter['lastName'];
+        }
+
+        function chooseWinner(fight) {
+            if(fight['winner'] === "Not available yet"){
+                return null;
+            } else {
+                const winnerName = fight['winner'];
+                const fighterOneName = `${fight['Fighters'][0]['FirstName']} ${fight['Fighters'][0]['LastName']}`;
+                const fighterTwoName = `${fight['Fighters'][1]['FirstName']} ${fight['Fighters'][1]['LastName']}`;
+                if(fighterOneName === winnerName){
+                    return fight['Fighters'][0]['FighterId'];
+                } else if (fighterTwoName === winnerName){
+                    return fight['Fighters'][1]['FighterId'];
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        // if we are order 6 or above we assume main card
+        function chooseCardSegment(fight) {
+            if(fight['Order'] >= 6) {
+                return 'Main Card';
+            } else if (fight['Order'] >= 12) {
+                return 'Prelims';
+            } else {
+                return 'Early Prelims';
+            }
+        }
+
+        function chooseFinishType(fight) {
+            if(['Maj.', 'Dec.', 'Draw'].includes(fight['finishType'])) {
+                return 'Decision';
+            } else if (fight['finishType'] === 'Sub.'){
+                return 'Submission';
+            } else if (fight['finishType'] === 'TKO/KO') {
+                return 'KO/TKO'
+            } else {
+                return fight['finishType'];
+            }
+        }
     }
 }
