@@ -4,18 +4,25 @@ const admin = require("firebase-admin");
 const SharedFunctions = require("../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 const functions = require("firebase-functions");
+const FantasyAnalyticsClient = require("../fa_api/fa_client");
 
 module.exports = async (context) => {
+    let client = new FantasyAnalyticsClient();
+    await client.login();
 
     const FantasyDataClient = new fdClientModule(Constants.keys);
     let oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
     const filterDateTime = oneWeekAgo.toISOString();
-    let eventDetailSnapshot = await admin.firestore().collection("eventDetails")
+    let eventDetailSnapshot = await admin.firestore().collection("apis/v2/eventDetails")
         .where('DateTime', '>=', filterDateTime)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
         return querySnapshot.docs.map(function(doc) { return doc;})
     });
+
+
+
+
 
 
     let counter = 0;
@@ -23,8 +30,9 @@ module.exports = async (context) => {
     let batches = [];
     batches[commitCounter] = admin.firestore().batch();
 
-    let events = JSON.parse(await FantasyDataClient.MMAv3ScoresClient
-        .getSchedulePromise("UFC", 2022)).filter(event => event['DateTime'] >= filterDateTime)
+    let events = JSON.parse(await client.getEvents().filter(event => event['date'] >= filterDateTime));
+
+    return null;
 
     let leagueUpdateMap = {} // {leagueId: {eventId: eventData}}
 
