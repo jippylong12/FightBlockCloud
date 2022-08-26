@@ -30,7 +30,8 @@ exports.updateScores = functions.runWith({
 }).pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
 // request functions
-exports.testing = functions.https.onRequest(getMMAEventDetails);
+exports.testing = functions.https.onRequest(getMMAFighters);
+exports.testing2 = functions.https.onRequest(getMMAEventDetails);
 exports.createHistoricalLeaderboard = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files

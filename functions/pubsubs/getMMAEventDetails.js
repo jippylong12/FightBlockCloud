@@ -1,5 +1,3 @@
-const Constants = require("./Constants");
-const fdClientModule = require("fantasydata-node-client");
 const admin = require("firebase-admin");
 const SharedFunctions = require("../SharedFunctions");
 const sharedFunctions = new SharedFunctions();

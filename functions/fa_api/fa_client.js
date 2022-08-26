@@ -24,10 +24,6 @@ class FantasyAnalyticsClient {
         return this.authToken !== '';
     }
 
-// TODO: figure out why node isn't loading, then work through the function to replace with our data
-    // GET API data
-    // Filter out only MMA
-    // Clean up the data - Date needs to remove the Z String
     async getEvents() {
         if (this.authorized()) {
             let data = await axios.get(`${this.baseUrl}/events?pageSize=50`, {
@@ -65,6 +61,17 @@ class FantasyAnalyticsClient {
     }
 
 
+    async getFighter(id) {
+        let _data = await axios.get(`${this.baseUrl}/fighters/${id}`, { headers: {
+                'Authorization': this.authToken,
+            },}).then((response) => {
+            return response.data;
+        }).catch((response) => {
+            console.log(response);
+        })
+
+        return _data;
+    }
 }
 
 
