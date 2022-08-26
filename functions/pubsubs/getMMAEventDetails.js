@@ -234,7 +234,7 @@ module.exports = async (context) => {
     // convert API v2 data to how the DB is formed in v1
     function transformData(event, results) {
         for(const r of results) {
-            updateFightKeys(r);
+            updateFightKeys(r, results.length);
         }
 
         event['EventId'] = event['id'];
@@ -270,14 +270,14 @@ module.exports = async (context) => {
             return 'Final';
         }
 
-        function updateFightKeys(fight) {
+        function updateFightKeys(fight, length) {
             updateFighterObject(fight['fighterRed']);
             updateFighterObject(fight['fighterBlue']);
             fight['Fighters'] = [
                 fight['fighterRed'],
                 fight['fighterBlue'],
             ];
-            fight['Order'] = fight['order'];
+            fight['Order'] = (length + 1) - fight['order'];
             fight['EventId'] = fight['eventId'];
             fight['Status'] = chooseFightStatus(fight);
             fight['WinnerId'] = chooseWinner(fight);
@@ -331,7 +331,7 @@ module.exports = async (context) => {
         function chooseCardSegment(fight) {
             if(fight['Order'] >= 6) {
                 return 'Main Card';
-            } else if (fight['Order'] >= 12) {
+            } else if (fight['Order'] <= 12) {
                 return 'Prelims';
             } else {
                 return 'Early Prelims';
