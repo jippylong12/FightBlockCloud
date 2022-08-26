@@ -329,7 +329,7 @@ module.exports = async (context) => {
 
         // if we are order 6 or above we assume main card
         function chooseCardSegment(fight) {
-            if(fight['Order'] >= 6) {
+            if(fight['Order'] <= 6) {
                 return 'Main Card';
             } else if (fight['Order'] <= 12) {
                 return 'Prelims';
