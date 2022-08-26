@@ -4,7 +4,7 @@ const sharedFunctions = new SharedFunctions();
 const functions = require("firebase-functions");
 const FantasyAnalyticsClient = require("../fa_api/fa_client");
 
-module.exports = async (context, response) => {
+module.exports = async (context) => {
     let client = new FantasyAnalyticsClient();
     await client.login();
 
@@ -96,7 +96,7 @@ module.exports = async (context, response) => {
 
     await sharedFunctions.writeToDb(batches);
 
-    return response.send("howdy");
+    return null;
 
 
     // this will try to find the fight data in the pickList. If we find it then replace the data, if there is a clash of order

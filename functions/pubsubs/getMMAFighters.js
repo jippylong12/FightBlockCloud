@@ -6,7 +6,7 @@ const SharedFunctions = require("../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 const FantasyAnalyticsClient = require("../fa_api/fa_client");
 
-module.exports = async (context, response) => {
+module.exports = async (context) => {
 
     let snapshot = await admin.firestore().collection("apis/v2/fighters").get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => [doc.id, doc.data()])
@@ -71,7 +71,7 @@ module.exports = async (context, response) => {
 
     await sharedFunctions.writeToDb(batches);
 
-    return response.send("howdy");
+    return null;
 
 
     function transformFighterData(fighterData) {
