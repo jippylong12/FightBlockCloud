@@ -3,7 +3,7 @@ const axios = require('axios').default;
 
 class FantasyAnalyticsClient {
     authToken = '';
-    baseUrl = 'https://fight-api-staging.herokuapp.com';
+    baseUrl = 'https://fight-api.herokuapp.com';
 
 
     async login() {
