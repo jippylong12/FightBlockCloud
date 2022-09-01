@@ -77,7 +77,7 @@ module.exports = async (context) => {
 
     function transformFighterData(fighterData) {
         if(fighterData['dateOfBirth'] === null) {
-            fighterData['BirthDate'] = '';
+            fighterData['BirthDate'] = null;
         } else {
             fighterData['BirthDate'] = new Date(`${fighterData['dateOfBirth']}Z`).toISOString().replace("Z", "")
         }
