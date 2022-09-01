@@ -14,6 +14,8 @@ module.exports = async (context) => {
 
     let client = new FantasyAnalyticsClient();
     await client.login();
+    let oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth()-1)
 
     let oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
@@ -40,30 +42,29 @@ module.exports = async (context) => {
 
 
     for (const fighterId of fighterIds) {
-        let fighterData = await client.getFighter(fighterId);
-        fighterData = transformFighterData(fighterData);
+        if(counter === 25) {
+            await sharedFunctions.writeToDb(batches);
+            counter = 0;
+            commitCounter = 0;
+            batches = [];
 
-        let foundFighter = snapshot.find(item => item[1].FighterId === fighterData['FighterId']);
-        if (snapshot.length === 0 || foundFighter === undefined) {
-            if(counter <= 498){
-                batches[commitCounter].set(admin.firestore().collection('apis/v2/fighters').doc(), fighterData)
-                counter = counter + 1;
-            } else {
-                counter = 0;
-                commitCounter = commitCounter + 1;
-                batches[commitCounter] = admin.firestore().batch();
-                batches[commitCounter].set(admin.firestore().collection('apis/v2/fighters').doc(), fighterData)
-            }
-        } else {
-            if(counter <= 498){
-                batches[commitCounter].update(admin.firestore().collection('apis/v2/fighters').doc(foundFighter[0]), fighterData)
-                counter = counter + 1;
-            } else {
-                counter = 0;
-                commitCounter = commitCounter + 1;
-                batches[commitCounter] = admin.firestore().batch();
-                batches[commitCounter].update(admin.firestore().collection('apis/v2/fighters').doc(foundFighter[0]), fighterData)
-            }
+            batches[commitCounter] = admin.firestore().batch();
+        }
+
+        let foundFighter = snapshot.find(item => item[1].FighterId === fighterId);
+
+        let fighterData = null;
+        if(foundFighter === undefined) {
+            fighterData = await client.getFighter(fighterId);
+            fighterData = transformFighterData(fighterData);
+        } else if (foundFighter && (foundFighter[1]['UpdatedAt'] === null || foundFighter[1]['UpdatedAt'] < oneMonthAgo.toISOString())) {
+            fighterData = await client.getFighter(fighterId);
+            fighterData = transformFighterData(fighterData);
+        }
+
+        if(fighterData) {
+            batches[commitCounter].set(admin.firestore().collection('apis/v2/fighters').doc(), fighterData)
+            counter = counter + 1;
         }
 
     }
@@ -75,7 +76,11 @@ module.exports = async (context) => {
 
 
     function transformFighterData(fighterData) {
-        fighterData['BirthDate'] = new Date(`${fighterData['dateOfBirth']}Z`).toISOString().replace("Z", "")
+        if(fighterData['dateOfBirth'] === null) {
+            fighterData['BirthDate'] = '';
+        } else {
+            fighterData['BirthDate'] = new Date(`${fighterData['dateOfBirth']}Z`).toISOString().replace("Z", "")
+        }
         fighterData['CareerStats'] = addCareerStats(fighterData);
         fighterData['Wins'] = fighterData['wins'];
         fighterData['Draws'] = fighterData['draws'];
@@ -91,6 +96,7 @@ module.exports = async (context) => {
         fighterData['TechnicalKnockoutLosses'] = fighterData['lossesKoTko'];
         fighterData['TechnicalKnockouts'] = fighterData['winsKoTko'];
         fighterData['WeightClass'] = fighterData['weightClass'];
+        fighterData['UpdatedAt'] = new Date().toISOString();
 
 
         delete fighterData['dateOfBirth'];

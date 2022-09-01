@@ -10,11 +10,11 @@ module.exports = function () {
 
     this.writeToDb = async function (arr) {
         console.log("beginning write");
-        for (var i = 0; i < arr.length; i++) {
+        for (let i = 0; i < arr.length; i++) {
             await this.oneSecond();
             try {
                 await arr[i].commit().then(function () {
-                    console.log("wrote batch " + i);
+                    console.log("wrote batch " + i + 1);
                 });
             } catch (e) {
                 console.log(e);
