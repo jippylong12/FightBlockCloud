@@ -1,81 +1,111 @@
-const Constants = require("./Constants");
-const fdClientModule = require("fantasydata-node-client");
 const admin = require("firebase-admin");
-const functions = require("firebase-functions");
 const {scorePickList} = require("./Constants");
+const MikeGAPIClient = require("../mike_g_api/client");
 
 module.exports = async (context) => {
     let startDate = new Date();
     let endDate = new Date();
-    startDate.setDate(startDate.getDate() - 2);
-    endDate.setDate(endDate.getDate()+2);
+    startDate.setDate(startDate.getDate() - 21);
+    endDate.setDate(endDate.getDate());
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
-    const FantasyDataClient = new fdClientModule(Constants.keys);
-    let snapshot = await admin.firestore().collection("eventDetails")
-        .where("DateTime",">", isoStringStart)
-        .where("DateTime","<", isoStringEnd)
+    const clientFights = new MikeGAPIClient;
+
+
+    let snapshot = await admin.firestore().collection("apis/v2/eventDetails")
+        .where("DateTime", ">", isoStringStart)
+        .where("DateTime", "<", isoStringEnd)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
-            return querySnapshot.docs.map(doc => doc.data())
+            return querySnapshot.docs.map(function (doc) {
+                return {"id": doc.id, 'data': doc.data()}
+            })
         });
+
+
+    // first we need to use the fights API and update the event Details
+    for (const eventData of snapshot) {
+        const fightCount = eventData['data']['Fights'].length;
+        let finalFightCount = 0;
+        for (const fight of eventData['data']['Fights']) {
+            let newFightData = await clientFights.fightResults(fight['FightId'])
+            if (newFightData.hasOwnProperty('actions')) {
+                const resultData = newFightData['actions'].find(i => i['name'] === 'fightResult');
+                if (resultData) {
+                    finalFightCount += 1 // so we know when to finalize
+                    // each of these are items we get from the Mike G API we need to update
+                    const winnerId = resultData['extraFields']['winnerId'];
+                    const finishType = resultData['extraFields']['finishType'];
+                    const round = resultData['round'];
+                    const finishedAt = resultData['roundTime'];
+
+                    fight['Status'] = 'Final';
+                    fight['ResultRound'] = round;
+                    fight['WinnerId'] = winnerId;
+                    fight['ResultType'] = finishType;
+                    fight['roundTime'] = finishedAt;
+
+                    // if we get all that we need then we can update
+                    if (finalFightCount === fightCount) {
+                        console.log(`Marking event as final ${eventData['id']}`);
+                        eventData['data']['Status'] = 'Final'
+                    }
+                }
+            }
+        }
+
+        // update the event in the DB for future runs
+        await admin.firestore().collection("apis/v2/eventDetails").doc(eventData['id']).set(eventData['data']);
+    }
 
     // which leagues to update.
     // {leagueId: {userId: points}}
     let leagueUpdateMap = {}
 
-    for (const event of snapshot) {
-        await FantasyDataClient.MMAv3ScoresClient.getEventPromise(event['EventId']).then(async results => {
-            results = JSON.parse(results);
+    for (const eventData of snapshot) {
+        const event = eventData['data']; // the data is still saved from our previous work
+
+        // find all pickLists with this event
+        await admin.firestore().collection("pickLists")
+            .where("eventId", "==", event['EventId']).get().then(async pickListsSnapshot => {
+                for (const doc of pickListsSnapshot.docs) {
+                    let pickList = doc.data();
 
 
-            // find all pickLists with this event
-            await admin.firestore().collection("pickLists")
-                .where("eventId","==", event['EventId']).get().then(async pickListsSnapshot => {
-
-                    for (const doc of pickListsSnapshot.docs) {
-                        let pickList = doc.data();
-
-
-                        // replace the fight data with the right data
-                        pickList['picks'].forEach(pick => {
-                            results['Fights'].forEach((fight) => {
-                                if (pick['fightData']['FightId'] === fight['FightId']) {
-                                    if (fight['ResultType'] === null) {
-                                        fight['ResultType'] = "";
-                                    }
-
-                                    pick['fightData'] = fight;
+                    // replace the fight data with the right data
+                    pickList['picks'].forEach(pick => {
+                        event['Fights'].forEach((fight) => {
+                            if (pick['fightData']['FightId'] === fight['FightId']) {
+                                if (fight['ResultType'] === null) {
+                                    fight['ResultType'] = "";
                                 }
-                            });
+
+                                pick['fightData'] = fight;
+                            }
                         });
+                    });
 
-                        // score the pickList
-                        scorePickList(pickList);
+                    // score the pickList
+                    scorePickList(pickList);
 
-                        await admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
+                    await admin.firestore().collection("pickLists").doc(doc.id).set(pickList);
 
-                        if (!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])) {
-                            leagueUpdateMap[pickList['leagueId']] = {};
-                        }
-
-                        if (!leagueUpdateMap[pickList['leagueId']].hasOwnProperty(pickList['userId'])) {
-                            leagueUpdateMap[pickList['leagueId']][pickList['userId']] = pickList['score'];
-                        } else {
-                            leagueUpdateMap[pickList['leagueId']][pickList['userId']] += pickList['score'];
-                        }
-
-
-                        if(!pickList['active'] && leagueUpdateMap[pickList['leagueId']]['saveScores'] !== true){
-                            leagueUpdateMap[pickList['leagueId']]['saveScores'] = true;
-                        }
+                    if (!leagueUpdateMap.hasOwnProperty(pickList['leagueId'])) {
+                        leagueUpdateMap[pickList['leagueId']] = {};
                     }
-                });
 
-        }).catch(error => {
-            functions.logger.error("Client failed!", {structuredData: true});
-            functions.logger.error(error, {structuredData: true});
-        })
+                    if (!leagueUpdateMap[pickList['leagueId']].hasOwnProperty(pickList['userId'])) {
+                        leagueUpdateMap[pickList['leagueId']][pickList['userId']] = pickList['score'];
+                    } else {
+                        leagueUpdateMap[pickList['leagueId']][pickList['userId']] += pickList['score'];
+                    }
+
+
+                    if (!pickList['active'] && leagueUpdateMap[pickList['leagueId']]['saveScores'] !== true) {
+                        leagueUpdateMap[pickList['leagueId']]['saveScores'] = true;
+                    }
+                }
+            });
     }
 
 
@@ -83,7 +113,7 @@ module.exports = async (context) => {
     console.log(JSON.stringify(leagueUpdateMap));
 
     // update the league leaderboard
-    for( let leagueId in leagueUpdateMap){
+    for (let leagueId in leagueUpdateMap) {
         await admin.firestore().collection("leagues").doc(leagueId).get().then(async docSnapshot => {
             let leagueData = docSnapshot.data();
 
@@ -101,14 +131,14 @@ module.exports = async (context) => {
         let saveBool;
         let updateLeaderboard = true;
 
-        if(!leagueData.hasOwnProperty('scoresData')){
+        if (!leagueData.hasOwnProperty('scoresData')) {
             leagueData['scoresData'] = {};
         }
 
-        if(!leagueData['scoresData'].hasOwnProperty('scoresMap')){
+        if (!leagueData['scoresData'].hasOwnProperty('scoresMap')) {
             leagueData['scoresData']['scoresMap'] = {};
-            leagueData['memberIds'].forEach(function(memberId) {
-                if(leagueUpdateMap[leagueId].hasOwnProperty(memberId)) {
+            leagueData['memberIds'].forEach(function (memberId) {
+                if (leagueUpdateMap[leagueId].hasOwnProperty(memberId)) {
                     leagueData['scoresData']['scoresMap'][memberId] = leagueUpdateMap[leagueId][memberId];
                 } else {
                     leagueData['scoresData']['scoresMap'][memberId] = 0.0;
@@ -120,7 +150,7 @@ module.exports = async (context) => {
         // Otherwise, since the score function runs every X minutes, we will increase forever
         // we need to also check if we should update the leaderboard which we should not if it's been updated in the last day
         // Otherwise, we will double count this week's total
-        if(leagueData['scoresData'].hasOwnProperty('updatedAt')){
+        if (leagueData['scoresData'].hasOwnProperty('updatedAt')) {
             // has it been more than a day?
             let now = new Date();
             now.setDate(now.getDate());
@@ -153,7 +183,7 @@ module.exports = async (context) => {
 
         // we only want to update if we haven't updated this week
         // otherwise the new data will save and we will then add this week's calc to this week's calc from the save
-        if(updateLeaderboard) {
+        if (updateLeaderboard) {
             console.log('updating Leaderboard');
             leagueData['leaderboard'].forEach((userRow) => {
                 // if we have this user updated pickList then we replace it
@@ -174,8 +204,8 @@ module.exports = async (context) => {
         }
 
         // only update once a week after all the picks are set
-        if(leagueUpdateMap[leagueId]['saveScores']){
-            if(saveBool) {
+        if (leagueUpdateMap[leagueId]['saveScores']) {
+            if (saveBool) {
                 console.log("Permanently updating scores for the week")
                 // when did we save
                 let now = new Date();
@@ -194,7 +224,7 @@ module.exports = async (context) => {
     }
 
 
-    function sortLeagueScoreboard(a, b){
+    function sortLeagueScoreboard(a, b) {
         let nameA = a.score;
         let nameB = b.score;
         if (nameA < nameB) {
@@ -209,11 +239,17 @@ module.exports = async (context) => {
     }
 
     // depending on their rank we need to return the text
-    function getRankText(rank){
-        if(rank === 1){ return "1st"; }
-        else if (rank === 2){ return "2nd"; }
-        else if (rank === 3){ return "3rd";}
-        else if (rank < 21) { return `${rank}th`}
-        else{ return rank.toString();}
+    function getRankText(rank) {
+        if (rank === 1) {
+            return "1st";
+        } else if (rank === 2) {
+            return "2nd";
+        } else if (rank === 3) {
+            return "3rd";
+        } else if (rank < 21) {
+            return `${rank}th`
+        } else {
+            return rank.toString();
+        }
     }
 }

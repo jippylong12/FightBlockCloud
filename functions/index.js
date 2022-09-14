@@ -7,6 +7,7 @@ const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const exportFirestore = require('./pubsubs/exportFirestore');
 const updateScores = require('./pubsubs/updateScores');
 const eventNotifications = require('./pubsubs/eventNotifications')
+const changeKeyInFightData = require('./requests/one-time/changeKeyInFightData')
 const cleanRoadToUFCEvents = require('./requests/one-time/cleanRoadToUFCEvents')
 const testing = require('./requests/testing');
 const createHistoricalLeaderboard = require('./requests/one-time/createHistoricalLeaderboard')
@@ -27,7 +28,7 @@ exports.eventNotifications = functions.pubsub.schedule('every hour').onRun(event
 exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
-    timeoutSeconds: 180,
+    timeoutSeconds: 240,
     memory: "128MB",
 }).pubsub.schedule('*/5 13-22 * * 6').onRun(updateScores);
 
@@ -40,3 +41,4 @@ exports.createHistoricalLeaderboard = functions.runWith({
     memory: "256MB",
 }).https.onRequest(createHistoricalLeaderboard);
 exports.cleanRoadToUFCEvents = functions.https.onRequest(cleanRoadToUFCEvents);
+exports.changeKeyInFightData = functions.https.onRequest(changeKeyInFightData);
