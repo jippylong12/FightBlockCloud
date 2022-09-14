@@ -8,16 +8,11 @@ const SharedFunctions = require("../../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
 
 module.exports = async (request, response) => {
+
     let pickLists = await admin.firestore().collection("pickLists")
-        .where('createdAt','>', '"2022-08-01T00:00:00"').get().then(querySnapshot => {
+        .where('createdAt','>', '2022-08-01T00:00:00').get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc)
     });
-
-
-    let counter = 0;
-    let commitCounter = 0;
-    let batches = [];
-    batches[commitCounter] = admin.firestore().batch();
 
     pickLists.forEach(function(pickList){{
         let pickListData = pickList.data();
@@ -35,6 +30,26 @@ module.exports = async (request, response) => {
         }
     }});
 
-    await sharedFunctions.writeToDb(batches);
+    let eventDetails = await admin.firestore().collection("apis/v2/eventDetails")
+        .where('DateTime','>', '2022-08-01T00:00:00').get().then(querySnapshot => {
+            return querySnapshot.docs.map(doc => doc)
+        });
+
+    eventDetails.forEach(function(event){{
+        let eventsData = event.data();
+        let updated = false;
+        eventsData['Fights'].forEach((fight) => {
+            if (fight.hasOwnProperty('id')) {
+                fight['FightId'] = fight['id'];
+                delete fight['id'];
+                updated = true;
+            }
+        })
+
+        if(updated) {
+            admin.firestore().collection('apis/v2/eventDetails').doc(event.id).set(eventsData);
+        }
+    }});
+
     response.send(`Processed`);
 }
