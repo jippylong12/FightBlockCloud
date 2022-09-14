@@ -5,8 +5,8 @@ const MikeGAPIClient = require("../mike_g_api/client");
 module.exports = async (context) => {
     let startDate = new Date();
     let endDate = new Date();
-    startDate.setDate(startDate.getDate() - 14);
-    endDate.setDate(endDate.getDate());
+    startDate.setDate(startDate.getDate() - 2);
+    endDate.setDate(endDate.getDate() + 2);
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
