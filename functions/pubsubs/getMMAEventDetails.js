@@ -277,6 +277,7 @@ module.exports = async (context) => {
                 fight['fighterRed'],
                 fight['fighterBlue'],
             ];
+            fight['FightId'] = fight['id'];
             fight['Order'] = (length + 1) - fight['order'];
             fight['EventId'] = fight['eventId'];
             fight['Status'] = chooseFightStatus(fight);
@@ -286,6 +287,7 @@ module.exports = async (context) => {
             fight['Rounds'] = fight['totalRound'];
             fight['CardSegment'] = chooseCardSegment(fight);
 
+            delete fight['id'];
             delete fight['order'];
             delete fight['eventId'];
             delete fight['winner'];
