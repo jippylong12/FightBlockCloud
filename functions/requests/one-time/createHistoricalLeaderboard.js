@@ -13,7 +13,7 @@ const {scorePickList} = require("../../pubsubs/Constants");
 module.exports = async (request, response) => {
     let startDate = new Date(2022,0,1);
     // this needs to be a few hours after the ending of the fights for the last fight. Run Upadatescores after this so that it will update the leadboard
-    let endDate = new Date(2022, 8, 4, 4,0,0);
+    let endDate = new Date(2022, 8, 1, 4,0,0);
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
