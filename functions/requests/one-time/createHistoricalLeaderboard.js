@@ -13,12 +13,12 @@ const {scorePickList} = require("../../pubsubs/Constants");
 module.exports = async (request, response) => {
     let startDate = new Date(2022,0,1);
     // this needs to be a few hours after the ending of the fights for the last fight. Run Upadatescores after this so that it will update the leadboard
-    let endDate = new Date(2022, 6, 17, 4,0,0);
+    let endDate = new Date(2022, 8, 4, 4,0,0);
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
     const FantasyDataClient = new fdClientModule(Constants.keys);
-    let snapshot = await admin.firestore().collection("eventDetails")
+    let snapshot = await admin.firestore().collection("apis/v2/eventDetails")
         .where("DateTime",">", isoStringStart)
         .where("DateTime","<", isoStringEnd)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
