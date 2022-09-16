@@ -8,10 +8,10 @@ module.exports = async (context) => {
     let client = new FantasyAnalyticsClient();
     await client.login();
 
-    let oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7); // 7 days from today
-    const filterDateTime = oneWeekAgo.toISOString();
+    let now = new Date();
+    const filterDateTime = now.toISOString();
     let eventDetailSnapshot = await admin.firestore().collection("apis/v2/eventDetails")
+        .where('Status', '!=', 'Final')
         .where('DateTime', '>=', filterDateTime)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
         return querySnapshot.docs.map(function(doc) { return doc;})
