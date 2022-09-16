@@ -9,12 +9,18 @@ module.exports = async (context) => {
     await client.login();
 
     let now = new Date();
+    now = changeTimezone(now, 'America/Los_Angeles') // we need to change the time zone to match Pacific because that's when the date time is
+    console.log(now.toISOString());
     const filterDateTime = now.toISOString();
     let eventDetailSnapshot = await admin.firestore().collection("apis/v2/eventDetails")
-        .where('Status', '!=', 'Final')
         .where('DateTime', '>=', filterDateTime)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
         return querySnapshot.docs.map(function(doc) { return doc;})
+    });
+
+
+    eventDetailSnapshot = eventDetailSnapshot.filter(function(e) {
+       return e.data()['Status'] !== 'Final';
     });
 
 
@@ -359,5 +365,13 @@ module.exports = async (context) => {
                 return fight['fightStatus'];
             }
         }
+    }
+
+    function changeTimezone(date, ianatz) {
+        let invdate = new Date(date.toLocaleString('en-US', {
+            timeZone: ianatz
+        }));
+        let diff = date.getTime() - invdate.getTime();
+        return new Date(date.getTime() - diff); // needs to subtract
     }
 }
