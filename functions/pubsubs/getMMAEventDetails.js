@@ -284,7 +284,7 @@ module.exports = async (context) => {
                 fight['fighterBlue'],
             ];
             fight['FightId'] = fight['id'];
-            fight['Order'] = (length + 1) - fight['order'];
+            fight['Order'] = length - fight['order'];
             fight['EventId'] = fight['eventId'];
             fight['Status'] = chooseFightStatus(fight);
             fight['WinnerId'] = chooseWinner(fight);
