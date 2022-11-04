@@ -18,16 +18,6 @@ module.exports = async (context) => {
         return querySnapshot.docs.map(function(doc) { return doc;})
     });
 
-
-    eventDetailSnapshot = eventDetailSnapshot.filter(function(e) {
-       return e.data()['Status'] !== 'Final';
-    });
-
-
-
-
-
-
     let counter = 0;
     let commitCounter = 0;
     let batches = [];
@@ -41,14 +31,23 @@ module.exports = async (context) => {
 
     for (const event of events) {
         const eventId = event.id;
+        let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === eventId);
+
+        if(eventDetail) {
+            const eData = eventDetail.data();
+            if(eData['Status'] === 'Final') continue;
+        }
+
+
+
         await client.getEvent(eventId).then(async results => {
             results = transformData(event,results);
+            if(results['Fights'].length === 0) return;
 
             results['Fights']  = results['Fights'].filter(function(f) {
                 return f['Order'] && f['Status'] !== 'Canceled'
             })
             results['Fights'].sort(sharedFunctions.sortByOrderFights)
-            let eventDetail = eventDetailSnapshot.find(item => item.data()['EventId'] === eventId);
 
             if (eventDetail) {
                 functions.logger.info(`Updating eventDetails ${JSON.stringify(eventId)}`, {structuredData: true});
@@ -245,7 +244,9 @@ module.exports = async (context) => {
 
         event['EventId'] = event['id'];
         event['Day']  = event['date'];
-        event['DateTime'] = new Date(`${event['date'].split("T")[0].trim()} ${event['time']} Z`).toISOString().replace("Z", "");
+        const timeRegex = /\d+:\d+ \w+/;
+        const timeString = event['time'].match(timeRegex)[0]
+        event['DateTime'] = new Date(`${event['date'].split("T")[0].trim()} ${timeString} Z`).toISOString().replace("Z", "");
         event['Name'] = event['name'];
         event['ShortName'] = event['name'].split(":")[0].trim();
         event['Status'] = setStatus(results)
