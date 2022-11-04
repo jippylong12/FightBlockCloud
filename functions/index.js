@@ -7,14 +7,9 @@ const getMMAEventDetails = require('./pubsubs/getMMAEventDetails');
 const exportFirestore = require('./pubsubs/exportFirestore');
 const updateScores = require('./pubsubs/updateScores');
 const eventNotifications = require('./pubsubs/eventNotifications')
-const changeKeyInFightData = require('./requests/one-time/changeKeyInFightData')
-const cleanRoadToUFCEvents = require('./requests/one-time/cleanRoadToUFCEvents')
 const testing = require('./requests/testing');
-const createHistoricalLeaderboard = require('./requests/one-time/createHistoricalLeaderboard')
+const clearDuplicateEvents = require('./requests/one-time/clearDuplicateEvents')
 admin.initializeApp();
-
-
-
 
 // pub subs
 exports.scheduledFirestoreExport = functions.pubsub.schedule('every 24 hours').onRun(exportFirestore);
@@ -34,11 +29,4 @@ exports.updateScores = functions.runWith({
 
 // request functions
 exports.testing = functions.https.onRequest(testing);
-exports.createHistoricalLeaderboard = functions.runWith({
-    // Ensure the function has enough memory and time
-    // to process large files
-    timeoutSeconds: 180,
-    memory: "256MB",
-}).https.onRequest(createHistoricalLeaderboard);
-exports.cleanRoadToUFCEvents = functions.https.onRequest(cleanRoadToUFCEvents);
-exports.changeKeyInFightData = functions.https.onRequest(changeKeyInFightData);
+exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
