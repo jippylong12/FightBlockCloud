@@ -4,7 +4,7 @@ const axios = require('axios').default;
 class FantasyAnalyticsClient {
     authToken = '';
     baseUrl = 'https://fight-api.herokuapp.com';
-
+    authorizedPromotionIds = [1, 64];
 
     async login() {
         if (!this.authorized()) {
@@ -33,7 +33,7 @@ class FantasyAnalyticsClient {
             })
                 .then((data) => {
                     let d = data.data;
-                    d = d.filter((event) => event['promotionId'] === 1).map((event) => {
+                    d = d.filter((event) => this.authorizedPromotionIds.includes(event['promotionId'])).map((event) => {
                         event['date'] = event['date'].replace("Z", "");
                         return event;
                     });

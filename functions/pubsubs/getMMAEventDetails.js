@@ -238,8 +238,10 @@ module.exports = async (context) => {
 
     // convert API v2 data to how the DB is formed in v1
     function transformData(event, results) {
+        let index = 1;
         for(const r of results) {
-            updateFightKeys(r, results.length);
+            updateFightKeys(r, results.length, index);
+            index += 1;
         }
 
         event['EventId'] = event['id'];
@@ -277,7 +279,7 @@ module.exports = async (context) => {
             return 'Final';
         }
 
-        function updateFightKeys(fight, length) {
+        function updateFightKeys(fight, length, index) {
             updateFighterObject(fight['fighterRed']);
             updateFighterObject(fight['fighterBlue']);
             fight['Fighters'] = [
@@ -285,7 +287,8 @@ module.exports = async (context) => {
                 fight['fighterBlue'],
             ];
             fight['FightId'] = fight['id'];
-            fight['Order'] = length - fight['order'] + 1;
+            let order1 =  length - fight['order'] + 1; // ideally this will work, but sometimes the ordering is wrong
+            fight['Order'] = Math.min(order1, index);
             fight['EventId'] = fight['eventId'];
             fight['Status'] = chooseFightStatus(fight);
             fight['WinnerId'] = chooseWinner(fight);
