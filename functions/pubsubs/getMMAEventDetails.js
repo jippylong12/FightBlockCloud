@@ -239,6 +239,9 @@ module.exports = async (context) => {
     // convert API v2 data to how the DB is formed in v1
     function transformData(event, results) {
         let index = 1;
+
+        results.sort(sharedFunctions.sortByOrderFightsV2)
+
         for(const r of results) {
             updateFightKeys(r, results.length, index);
             index += 1;
