@@ -91,6 +91,9 @@ function scorePick(pick){
 }
 
 function correctChosenFighter(pick) {
+    if(pick['fighterIdChosen'] === null) return false;
+    if(pick['fightData']['WinnerId'] === null) return false;
+
     return pick['fighterIdChosen'] === pick['fightData']['WinnerId'];
 }
 

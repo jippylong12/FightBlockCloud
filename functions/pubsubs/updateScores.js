@@ -5,12 +5,16 @@ const MikeGAPIClient = require("../mike_g_api/client");
 module.exports = async (context) => {
     let startDate = new Date();
     let endDate = new Date();
-    startDate.setDate(startDate.getDate() - 2);
-    endDate.setDate(endDate.getDate() + 2);
+    startDate.setDate(startDate.getDate() - 1);
+    endDate.setDate(endDate.getDate() + 1);
     let isoStringStart = startDate.toISOString();
     let isoStringEnd = endDate.toISOString();
 
     const clientFights = new MikeGAPIClient;
+
+    // which leagues to update.
+    // {leagueId: {userId: points}}
+    let leagueUpdateMap = {}
 
 
     let snapshot = await admin.firestore().collection("apis/v2/eventDetails")
@@ -24,32 +28,47 @@ module.exports = async (context) => {
 
 
     // first we need to use the fights API and update the event Details
-    for (const eventData of snapshot) {
+    for (let eventData of snapshot) {
         const fightCount = eventData['data']['Fights'].length;
         let finalFightCount = 0;
-        for (const fight of eventData['data']['Fights']) {
+        let emptyActionsIds = []; // list of fights with no actions.
+        for (let fight of eventData['data']['Fights']) {
             let newFightData = await clientFights.fightResults(fight['FightId'])
             if (newFightData.hasOwnProperty('actions')) {
                 const resultData = newFightData['actions'].find(i => i['name'] === 'fightResult');
                 if (resultData) {
+                    for (const id of emptyActionsIds) {
+                        let thisFightData = eventData['data']['Fights'].find(f => f['FightId'] === id);
+                        thisFightData['Status'] = 'Final';
+                        finalFightCount += 1;
+                    }
+
+                    if(emptyActionsIds.length > 0 ) {
+                        emptyActionsIds.length = 0; // clear the array
+                    }
+
+
+
                     finalFightCount += 1 // so we know when to finalize
                     // each of these are items we get from the Mike G API we need to update
                     const winnerId = resultData['extraFields']['winnerId'];
                     const finishType = resultData['extraFields']['finishType'];
                     const round = resultData['round'];
-                    const finishedAt = resultData['roundTime'];
+                    const roundTime = resultData['roundTime'];
 
                     fight['Status'] = 'Final';
                     fight['ResultRound'] = round;
                     fight['WinnerId'] = winnerId;
                     fight['ResultType'] = finishType;
-                    fight['roundTime'] = finishedAt;
+                    fight['roundTime'] = roundTime;
 
                     // if we get all that we need then we can update
                     if (finalFightCount === fightCount) {
                         console.log(`Marking event as final ${eventData['id']}`);
                         eventData['data']['Status'] = 'Final'
                     }
+                } else {
+                    emptyActionsIds.push(fight['FightId']); // if we
                 }
             }
         }
@@ -58,17 +77,13 @@ module.exports = async (context) => {
         await admin.firestore().collection("apis/v2/eventDetails").doc(eventData['id']).set(eventData['data']);
     }
 
-    // which leagues to update.
-    // {leagueId: {userId: points}}
-    let leagueUpdateMap = {}
-
-    for (const eventData of snapshot) {
+    for (let eventData of snapshot) {
         const event = eventData['data']; // the data is still saved from our previous work
 
         // find all pickLists with this event
         await admin.firestore().collection("pickLists")
             .where("eventId", "==", event['EventId']).get().then(async pickListsSnapshot => {
-                for (const doc of pickListsSnapshot.docs) {
+                for (let doc of pickListsSnapshot.docs) {
                     let pickList = doc.data();
 
 
