@@ -3,7 +3,7 @@
   "description": "Cloud Functions for Firebase",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
-    "serve_2": "firebase emulators:start --import=\"/Users/marcus.salinas/fbExport/\"",
+    "serve_2": "firebase emulators:start --inspect-functions --import=\"/Users/marcus.salinas/fbExport/\"",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
