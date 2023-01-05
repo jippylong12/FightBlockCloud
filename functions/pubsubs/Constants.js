@@ -9,7 +9,7 @@ module.exports.keys = {
 module.exports.scorePickList =     // loop through the pickList and score it
     function scorePickList(pickList, isoStringEnd=new Date().toISOString()) {
         pickList['score'] = 0;
-        pickList['locked'] = true;
+        pickList['locked'] = true; // Check the event datetime (time zone in US Eastern) and make sure the current time is after this time before locking!
         let boutWinnerCount = 0;
         let finalizeCount = 0; // if all picks are in the final state we want to finalize the PickCard
         pickList['picks'].forEach(function(thisPick) {
