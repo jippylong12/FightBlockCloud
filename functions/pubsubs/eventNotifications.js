@@ -18,6 +18,8 @@ module.exports = async (context) => {
 
     for (const leagueDoc of leagueSnapshot) {
         const leagueData = leagueDoc.data();
+        if(leagueData['events'] === undefined) continue;
+        if(leagueData['events'].length ===0) continue;
         const nextEventIndex = leagueData['events'].findIndex(item => item["Status"] !== "Final");
 
         // get the next event in this league
