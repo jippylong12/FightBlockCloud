@@ -35,6 +35,6 @@ exports.createLeagueScoresAndPositionsPerEvent = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
     timeoutSeconds: 540,
-    memory: "128MB",
+    memory: "256MB",
 }).https.onRequest(createLeagueScoresAndPositionsPerEvent);
 

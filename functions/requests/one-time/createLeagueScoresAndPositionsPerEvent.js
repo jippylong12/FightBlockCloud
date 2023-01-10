@@ -25,6 +25,15 @@ module.exports = async (request, response) => {
 
 
     for (const league of leagues ) {
+        if(counter > 10) {
+            await sharedFunctions.writeToDb(batches);
+            counter = 0;
+            commitCounter = 0;
+            batches = [];
+
+            batches[commitCounter] = admin.firestore().batch();
+        }
+
         const leagueId = league.id;
         let leagueData = league.data();
         let totalWeekScoreMap = {} // userId -> totalScore
@@ -101,16 +110,9 @@ module.exports = async (request, response) => {
         leagueData['positionPerWeek'] = positionPerWeek;
 
 
-        // gather to update the league ids by batch
-        if(counter <= 498){
-            batches[commitCounter].set(admin.firestore().collection('leagues').doc(leagueId), leagueData)
-            counter = counter + 1;
-        } else {
-            counter = 0;
-            commitCounter = commitCounter + 1;
-            batches[commitCounter] = admin.firestore().batch();
-            batches[commitCounter].set(admin.firestore().collection('leagues').doc(leagueId), leagueData)
-        }
+
+        batches[commitCounter].set(admin.firestore().collection('leagues').doc(leagueId), leagueData)
+        counter = counter + 1;
     }
 
 
