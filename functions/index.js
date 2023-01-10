@@ -28,13 +28,14 @@ exports.updateScores = functions.runWith({
     memory: "128MB",
 }).pubsub.schedule('*/5 13-22 * * 5,6').onRun(updateScores);
 
-// request functions
-exports.testing = functions.https.onRequest(testing);
-exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
-exports.createLeagueScoresAndPositionsPerEvent = functions.runWith({
+exports.updateScores = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
-    timeoutSeconds: 540,
-    memory: "256MB",
-}).https.onRequest(createLeagueScoresAndPositionsPerEvent);
+    timeoutSeconds: 240,
+    memory: "128MB",
+}).pubsub.schedule('0 1 * * 0,1,6').onRun(createLeagueScoresAndPositionsPerEvent);
+
+// request functions
+exports.testing = functions.https.onRequest(createLeagueScoresAndPositionsPerEvent);
+exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
 

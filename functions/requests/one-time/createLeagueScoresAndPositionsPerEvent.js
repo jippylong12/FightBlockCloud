@@ -9,11 +9,14 @@ const FantasyAnalyticsClient = require("../../fa_api/fa_client");
 const admin = require("firebase-admin");
 const SharedFunctions = require("../../SharedFunctions");
 const sharedFunctions = new SharedFunctions();
-module.exports = async (request, response) => {
+module.exports = async (request) => {
     let client = new FantasyAnalyticsClient();
+    let now = new Date();
+    const filterDateTime = now.toISOString();
     await client.login();
+    let startYear = "2023"; // for one time we will have this at 2022
 
-    let leagues = await admin.firestore().collection("leagues").get().then(querySnapshot => {
+    let leagues = await admin.firestore().collection("leagues").where("createdAt", ">=", startYear).get().then(querySnapshot => {
         return querySnapshot.docs.map(doc => doc)
     });
 
@@ -52,6 +55,8 @@ module.exports = async (request, response) => {
 
         if(leagueData.hasOwnProperty('events')) {
             for (const event of leagueData['events']) {
+                if(event['DateTime'] > filterDateTime) continue; // skip future events
+
                 let pickLists = await admin.firestore().collection("pickLists")
                     .where("eventId", "==", event['EventId'])
                     .where("leagueId", "==", leagueId).get();
@@ -117,7 +122,6 @@ module.exports = async (request, response) => {
 
 
     await sharedFunctions.writeToDb(batches);
-    response.send(`Processed`);
-
+    return null;
 
 }
