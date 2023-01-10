@@ -9,6 +9,7 @@ const updateScores = require('./pubsubs/updateScores');
 const eventNotifications = require('./pubsubs/eventNotifications')
 const testing = require('./requests/testing');
 const clearDuplicateEvents = require('./requests/one-time/clearDuplicateEvents')
+const createLeagueScoresAndPositionsPerEvent = require('./requests/one-time/createLeagueScoresAndPositionsPerEvent')
 admin.initializeApp();
 
 // pub subs
@@ -28,5 +29,5 @@ exports.updateScores = functions.runWith({
 }).pubsub.schedule('*/5 13-22 * * 5,6').onRun(updateScores);
 
 // request functions
-exports.testing = functions.https.onRequest(testing);
+exports.testing = functions.https.onRequest(createLeagueScoresAndPositionsPerEvent);
 exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
