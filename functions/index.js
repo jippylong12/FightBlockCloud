@@ -29,5 +29,7 @@ exports.updateScores = functions.runWith({
 }).pubsub.schedule('*/5 13-22 * * 5,6').onRun(updateScores);
 
 // request functions
-exports.testing = functions.https.onRequest(createLeagueScoresAndPositionsPerEvent);
+exports.testing = functions.https.onRequest(testing);
 exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
+exports.createLeagueScoresAndPositionsPerEvent = functions.https.onRequest(createLeagueScoresAndPositionsPerEvent);
+
