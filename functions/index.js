@@ -28,7 +28,7 @@ exports.updateScores = functions.runWith({
     memory: "128MB",
 }).pubsub.schedule('*/5 13-22 * * 5,6').onRun(updateScores);
 
-exports.updateScores = functions.runWith({
+exports.createLeagueScoresAndPositionsPerEvent = functions.runWith({
     // Ensure the function has enough memory and time
     // to process large files
     timeoutSeconds: 240,
