@@ -31,5 +31,10 @@ exports.updateScores = functions.runWith({
 // request functions
 exports.testing = functions.https.onRequest(testing);
 exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
-exports.createLeagueScoresAndPositionsPerEvent = functions.https.onRequest(createLeagueScoresAndPositionsPerEvent);
+exports.createLeagueScoresAndPositionsPerEvent = functions.runWith({
+    // Ensure the function has enough memory and time
+    // to process large files
+    timeoutSeconds: 540,
+    memory: "128MB",
+}).https.onRequest(createLeagueScoresAndPositionsPerEvent);
 
