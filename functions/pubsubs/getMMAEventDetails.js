@@ -303,6 +303,7 @@ module.exports = async (context) => {
 
             while(orderSet.has(order1)){
                 order1 -= 1;
+                if(order1 === 0) order1 -=1; // there are can be some issues with the order being 0 when it comes to truthy values
             }
 
             orderSet.add(order1);
