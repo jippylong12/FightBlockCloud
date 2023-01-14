@@ -36,6 +36,6 @@ exports.createLeagueScoresAndPositionsPerEvent = functions.runWith({
 }).pubsub.schedule('0 1 * * 0,1,6').onRun(createLeagueScoresAndPositionsPerEvent);
 
 // request functions
-exports.testing = functions.https.onRequest(createLeagueScoresAndPositionsPerEvent);
+exports.testing = functions.https.onRequest(testing);
 exports.clearDuplicateEvents = functions.https.onRequest(clearDuplicateEvents);
 

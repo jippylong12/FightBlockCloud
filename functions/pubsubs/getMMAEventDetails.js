@@ -10,8 +10,9 @@ module.exports = async (context) => {
 
     let now = new Date();
     now = changeTimezone(now, 'America/Los_Angeles') // we need to change the time zone to match Pacific because that's when the date time is
-    console.log(now.toISOString());
-    const filterDateTime = now.toISOString();
+    now.setUTCHours(0,0,0,0);
+    const filterDateTime = now.toISOString().replace("Z", "");
+    console.log(filterDateTime);
     let eventDetailSnapshot = await admin.firestore().collection("apis/v2/eventDetails")
         .where('DateTime', '>=', filterDateTime)
         .orderBy("DateTime", "desc").get().then(querySnapshot => {
@@ -239,11 +240,19 @@ module.exports = async (context) => {
     // convert API v2 data to how the DB is formed in v1
     function transformData(event, results) {
         let index = 1;
+        let resultLength = results.length;
+
 
         results.sort(sharedFunctions.sortByOrderFightsV2)
 
+        const orderDifference = results[0]['order'] - resultLength; // we had an instance where order was 12 but only 11 items were given
+        resultLength = resultLength - orderDifference;
+
+        const orderSet = new Set();
+
+
         for(const r of results) {
-            updateFightKeys(r, results.length, index);
+            updateFightKeys(r, resultLength, index, orderSet);
             index += 1;
         }
 
@@ -282,7 +291,7 @@ module.exports = async (context) => {
             return 'Final';
         }
 
-        function updateFightKeys(fight, length, index) {
+        function updateFightKeys(fight, length, index, orderSet) {
             updateFighterObject(fight['fighterRed']);
             updateFighterObject(fight['fighterBlue']);
             fight['Fighters'] = [
@@ -291,6 +300,13 @@ module.exports = async (context) => {
             ];
             fight['FightId'] = fight['id'];
             let order1 =  length - fight['order'] + 1; // ideally this will work, but sometimes the ordering is wrong
+
+            while(orderSet.has(order1)){
+                order1 -= 1;
+            }
+
+            orderSet.add(order1);
+
             fight['Order'] = Math.min(order1, index);
             fight['EventId'] = fight['eventId'];
             fight['Status'] = chooseFightStatus(fight);
