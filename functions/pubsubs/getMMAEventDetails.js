@@ -48,6 +48,10 @@ module.exports = async (context) => {
             results['Fights']  = results['Fights'].filter(function(f) {
                 return f['Order'] && f['Status'] !== 'Canceled'
             })
+
+            if(eventId === 1146) {
+                results['Fights'][1]['Order'] = 2;
+            }
             results['Fights'].sort(sharedFunctions.sortByOrderFights)
 
             if (eventDetail) {
